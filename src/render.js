@@ -123,7 +123,7 @@ export function draw(g,G,L,ui){
   // match flights
   for(const f of G.flights){const p=f.dur?1-Math.max(0,f.t)/f.dur:1,e=ease(p);
     const from={x:L.bx0+(f.at.c+0.5)*L.bc,y:L.boardTop+(f.at.r+0.5)*L.bc};
-    const free=G.slots.findIndex(s=>s.lock===0&&!s.cannon),to=free>=0?slotCenter(G,L,free):{x:LW/2,y:L.slotTop+SLOT_H/2};
+    const same=G.slots.findIndex(s=>s.cannon&&s.cannon.color===f.color&&s.cannon.ammo>0),free=same>=0?same:G.slots.findIndex(s=>s.lock===0&&!s.cannon),to=free>=0?slotCenter(G,L,free):{x:LW/2,y:L.slotTop+SLOT_H/2};
     g.fillStyle=colorHex(f.color);g.beginPath();g.arc(lerp(from.x,to.x,e),lerp(from.y,to.y,e)-Math.sin(p*Math.PI)*30,7,0,Math.PI*2);g.fill();}
   // popups
   for(const p of ui.pops){const a=p.age<0.8?1:Math.max(0,1-(p.age-0.8)/0.4);g.globalAlpha=a;
@@ -139,7 +139,7 @@ export function eventPops(G,L,ev){
   if(ev.type==='notarget'){const q=at(ev.at);return {...q,text:'No target',color:'#C9B8E8'};}
   if(ev.type==='lost')return {x:LW/2,y:L.slotTop+SLOT_H/2,text:'Slots full: cannon lost',color:'#FF8AA0'};
   if(ev.type==='unlock'){const q=slotCenter(G,L,ev.slot);return {...q,text:'Slot open',color:'#9FE8B5'};}
-  if(ev.type==='merge'){const q=slotCenter(G,L,ev.slot);return {...q,y:q.y-26,text:'Merge ×3',color:shade(colorHex(ev.color),0.4)};}
+  if(ev.type==='merge'){const q=slotCenter(G,L,ev.slot);return {...q,y:q.y-26,text:'Merge',color:shade(colorHex(ev.color),0.4)};}
   if(ev.type==='reshuffle')return {x:LW/2,y:L.boardTop+L.bc*G.BH/2,text:'No move: reshuffle',color:'#fff'};
   if(ev.type==='shuffle')return {x:LW/2,y:L.boardTop+L.bc*G.BH/2,text:'Shuffle',color:'#fff'};
   if(ev.type==='hand'){const q=slotCenter(G,L,ev.slot);return {...q,y:q.y-26,text:'Hand',color:'#FFD84D'};}

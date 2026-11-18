@@ -469,7 +469,7 @@ function runBot(){
       <tr><td>Wall cleared (average)</td><td>${Math.round(avg(res,r=>r.cleared)*100)}%</td></tr>
       <tr><td>Matches per run</td><td>${avg(res,r=>r.stats.matches).toFixed(0)}</td></tr>
       <tr><td>Cannons lost to full slots</td><td>${avg(res,r=>r.stats.lost).toFixed(1)}</td></tr>
-      <tr><td>Triple merges</td><td>${avg(res,r=>r.stats.merges).toFixed(1)}</td></tr></tbody></table>`;
+      <tr><td>Merges</td><td>${avg(res,r=>r.stats.merges).toFixed(1)}</td></tr></tbody></table>`;
     if(res.length<n)setTimeout(tick,0);
   };
   tick();

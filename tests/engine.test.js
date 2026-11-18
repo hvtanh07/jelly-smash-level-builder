@@ -36,24 +36,22 @@ describe('rules',()=>{
     land(G,'B',3);step(G,1/60);
     expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,0,0]);
   });
-  it('three cannons of one color merge into the leftmost',()=>{
+  it('a cannon of a color already in the slots merges into it at once',()=>{
     const G=newGame(mini({WallRows:['RRRR','RRRR','RRRR']}),{seed:1});settle(G);G.wy=-5;   // wall out of view: cannons wait
-    land(G,'R',3);land(G,'R',4);land(G,'R',5);step(G,1/60);step(G,1/60);
+    land(G,'R',3);step(G,1/60);land(G,'R',4);step(G,1/60);
     expect(G.slots.filter(s=>s.cannon).length).toBe(1);
-    expect(G.slots[0].cannon.ammo).toBe(12);
+    expect(G.slots[0].cannon.ammo).toBe(7);
   });
   it('full slots lose the new cannon',()=>{
     const G=newGame(mini({SlotCount:2,SlotLocks:'00'}),{seed:1});settle(G);G.wy=-5;
     land(G,'R',3);land(G,'B',3);land(G,'G',3);step(G,1/60);
     expect(G.stats.lost).toBe(1);
   });
-  it('full slots still merge a third cannon of a color, freeing a slot',()=>{
-    const G=newGame(mini({SlotCount:3,SlotLocks:'000'}),{seed:1});settle(G);G.wy=-5;
-    land(G,'R',3);land(G,'B',3);land(G,'R',4);step(G,1/60);
-    land(G,'R',5);step(G,1/60);
+  it('full slots still merge a cannon of a color already in the slots',()=>{
+    const G=newGame(mini({SlotCount:2,SlotLocks:'00'}),{seed:1});settle(G);G.wy=-5;
+    land(G,'R',3);step(G,1/60);land(G,'B',3);step(G,1/60);land(G,'R',5);step(G,1/60);
     expect(G.stats.lost).toBe(0);
-    expect(G.slots.filter(s=>s.cannon).length).toBe(2);
-    expect(G.slots[0].cannon.ammo).toBe(12);
+    expect(G.slots.map(s=>s.cannon&&s.cannon.ammo)).toEqual([8,3]);
   });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);

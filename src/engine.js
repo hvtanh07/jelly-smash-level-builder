@@ -287,36 +287,35 @@ function gravity(G){
 }
 
 /* ---------- cannons ---------- */
-function placeCannon(G,f){
-  if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
-  const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
-  if(i<0){
-    // slots full: a third cannon of a color already twice in the slots still merges, freeing a slot
-    const same=G.slots.map((s,j)=>j).filter(j=>{const k=G.slots[j].cannon;return k&&k.color===f.color&&k.ammo>0;});
-    if(same.length>=2){const [a,b]=same,keep=G.slots[a].cannon;keep.ammo+=f.ammo+G.slots[b].cannon.ammo;keep.pop=1;G.slots[b].cannon=null;
-      G.stats.merges++;G.events.push({type:'merge',slot:a,color:f.color,from:[b]});return;}
-    G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
-  G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
-  // GDD 1.4 Locked Slot: each cannon that enters a slot counts every locked slot down by 1
+function countLocks(G){
+  // GDD 1.4 Locked Slot: each cannon that reaches the slots counts every locked slot down by 1
   G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
 }
-function mergeTriples(G){
-  const by=new Map();
-  G.slots.forEach((s,i)=>{const k=s.cannon;if(k&&k.ammo>0){if(!by.has(k.color))by.set(k.color,[]);by.get(k.color).push(i);}});
-  for(const [color,idx] of by){
-    if(idx.length<3)continue;
-    const [a,b,c]=idx,keep=G.slots[a].cannon;
-    keep.ammo+=G.slots[b].cannon.ammo+G.slots[c].cannon.ammo;keep.pop=1;
-    G.slots[b].cannon=null;G.slots[c].cannon=null;G.stats.merges++;
-    G.events.push({type:'merge',slot:a,color,from:[b,c]});
-  }
+/* A cannon of a color already in the slots merges into that cannon at once (ammo added), even when the slots are full.
+   Otherwise it takes the leftmost free slot; slots full: it is lost. */
+function placeCannon(G,f){
+  if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
+  const m=G.slots.findIndex(s=>s.cannon&&s.cannon.color===f.color&&s.cannon.ammo>0);
+  if(m>=0){const k=G.slots[m].cannon;k.ammo+=f.ammo;k.pop=1;G.stats.merges++;G.events.push({type:'merge',slot:m,color:f.color});countLocks(G);return;}
+  const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
+  if(i<0){G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
+  G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
+  countLocks(G);
+}
+// safety net: two cannons of one color in the slots merge into the leftmost
+function mergeSame(G){
+  const first=new Map();
+  G.slots.forEach((s,i)=>{const k=s.cannon;if(!k||k.ammo<=0)return;
+    if(!first.has(k.color)){first.set(k.color,i);return;}
+    const keep=G.slots[first.get(k.color)].cannon;keep.ammo+=k.ammo;keep.pop=1;s.cannon=null;G.stats.merges++;
+    G.events.push({type:'merge',slot:first.get(k.color),color:k.color});});
 }
 function fireShot(G,a,color,origin,delay){
   a.pend++;G.stats.shots++;
   G.shots.push({ant:a.id,color,t:(+G.lv.ShotFlight||0)+(delay||0),dur:+G.lv.ShotFlight||0,delay:delay||0,origin});
 }
 function updateCannons(G,dt){
-  mergeTriples(G);
+  mergeSame(G);
   const fire=+G.lv.FireInterval||0.15;
   G.slots.forEach((s,i)=>{const k=s.cannon;if(!k)return;
     k.pop=Math.max(0,(k.pop||0)-dt*3.5);
@@ -440,7 +439,7 @@ export function botMove(G){
       let bonus=0;for(const [r,c] of neighbors(G,g.cells)){const x=G.cells[r][c];if(!x)continue;
         if(x.kind==='choco')bonus+=1.5;
         if(x.kind==='tray'){const t=G.trays[x.tray];if(t.bottles.some(q=>!q.broken&&q.color===g.color))bonus+=4;}}
-      const room=free>0||sameIn(g.color)>=2;
+      const room=free>0||sameIn(g.color)>=1;
       const front=pickTarget(G,g.color)?3:0;
       s+=(room&&need>0?Math.min(ammo+bonus,need)+front:-2)+bonus*0.5;
     }
