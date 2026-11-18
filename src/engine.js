@@ -290,7 +290,12 @@ function gravity(G){
 function placeCannon(G,f){
   if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
   const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
-  if(i<0){G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
+  if(i<0){
+    // slots full: a third cannon of a color already twice in the slots still merges, freeing a slot
+    const same=G.slots.map((s,j)=>j).filter(j=>{const k=G.slots[j].cannon;return k&&k.color===f.color&&k.ammo>0;});
+    if(same.length>=2){const [a,b]=same,keep=G.slots[a].cannon;keep.ammo+=f.ammo+G.slots[b].cannon.ammo;keep.pop=1;G.slots[b].cannon=null;
+      G.stats.merges++;G.events.push({type:'merge',slot:a,color:f.color,from:[b]});return;}
+    G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
   G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
   // GDD 1.4 Locked Slot: each cannon that enters a slot counts every locked slot down by 1
   G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
