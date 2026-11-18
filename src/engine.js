@@ -264,9 +264,13 @@ function gravity(G){
   const w=spawnWeights(G);
   for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(x&&x.kind==='cube'){x.from=r;}}
   for(let c=0;c<G.BW;c++){
-    // chocoStarves (GDD 1.4): no new cubes below a chocolate in the same column until it breaks
-    let seg=[],fed=true;const segs=[];
-    for(let r=0;r<G.BH;r++){const x=G.cells[r][c];if(!x)continue;
+    // chocoStarves (GDD 1.4): no new cubes below a chocolate in the same column until it breaks.
+    // The same option makes a hole (# cell) with cells above it block refill below it for good;
+    // holes above the column's first cell do not count, new cubes enter at that first cell.
+    let seg=[],fed=true,top=true;const segs=[];
+    for(let r=0;r<G.BH;r++){const x=G.cells[r][c];
+      if(!x){if(top)continue;if(G.opt.chocoStarves){if(seg.length)segs.push({rows:seg,fed});seg=[];fed=false;}continue;}
+      top=false;
       if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push({rows:seg,fed});seg=[];if(x.kind==='choco'&&G.opt.chocoStarves)fed=false;continue;}
       seg.push(r);}
     if(seg.length)segs.push({rows:seg,fed});

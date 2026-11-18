@@ -359,13 +359,13 @@
     "BoardHeight": 8,
     "BoardRows": [
       "OROBBORO",
-      "RBRGGRBR",
-      "GG####GG",
-      "RO####OR",
-      "GO####OG",
-      "RG####GR",
-      "BOBGGBOB",
-      "RGRGGRGR"
+      "RRYGGYRR",
+      "GGBGGBGG",
+      "ROR##ROR",
+      "BGY##YGB",
+      "RORBBROR",
+      "GOYGGYOG",
+      "BRRGGRRB"
     ],
     "BoardElements": [
       "........",
@@ -605,26 +605,26 @@
     "BoardWidth": 9,
     "BoardHeight": 9,
     "BoardRows": [
-      "ORGBRBGRO",
-      "GOGBOBGOG",
-      "GBRRGRRBG",
-      "BOGYBYGOB",
-      "RGOYOYOGR",
-      "OYROYORYO",
-      "GGOYGYOGG",
-      "GBGRYRGBG",
-      "RRGOYOGRR"
+      "OGBYGYBGO",
+      "GOBBOBBOG",
+      "RYRRORRYR",
+      "RYYGBGYYR",
+      "YGRBOBRGY",
+      "OROOGOORO",
+      "GYRRGRRYG",
+      "RGRYBYRGR",
+      "BYGYBYGYB"
     ],
     "BoardElements": [
       ".........",
       ".........",
       ".........",
       ".........",
+      "111111111",
+      "222222222",
       ".........",
-      ".2333332.",
-      ".1.....1.",
-      ".1.....1.",
-      ".1.....1."
+      ".........",
+      "........."
     ],
     "TrayBottles": [],
     "QueenHp": 18,

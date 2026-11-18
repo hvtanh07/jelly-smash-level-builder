@@ -63,6 +63,16 @@ describe('rules',()=>{
       if(starve)expect(empty).toBeGreaterThanOrEqual(3);else expect(empty).toBe(0);
     }
   });
+  it('chocoStarves: a hole with cells above it blocks refill below; a top hole does not',()=>{
+    const G=newGame(mini({BoardRows:['#.....','......','#.####','......','......','......']}),{seed:3,chocoStarves:true});settle(G);G.wy=-5;
+    const cols='BGYBGY';for(let r=0;r<6;r++)for(let c=0;c<6;c++){const x=G.cells[r][c];if(x)x.color=cols[(c+r)%6];}
+    ['R','R','G','R'].forEach((k,c)=>{G.cells[5][c].color=k;});
+    expect(trySwap(G,[5,2],[5,3])).toBeTruthy();run(G,3);
+    // cols 0-2 cleared: col 0 (top hole only) and col 1 refill, col 2 (hole at row 2) does not
+    expect(G.cells[5][0].kind).toBe('cube');
+    expect([3,4,5].map(r=>G.cells[r][2].kind)).toContain('empty');
+    expect(G.cells[5][1].kind).toBe('cube');
+  });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);
     land(G,'R',3);run(G,2);
