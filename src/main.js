@@ -1,6 +1,6 @@
 import './style.css';
 import ORIGINAL from './data/levels.json';
-import {KEYS,PALETTE,COLOR_KEYS,colorHex,colorName,QUEEN,EMPTY,HOLE,CHOCO,TRAY,DIFFICULTY,TUNING,DEFAULTS,
+import {KEYS,PALETTE,COLOR_KEYS,colorHex,colorName,QUEEN,EMPTY,HOLE,CHOCO,TRAY,isChoco,chocoHp,DIFFICULTY,TUNING,DEFAULTS,
   normalize,serialize,serializeAll,parseLevels,blankLevel,findQueens,findTrays,hpAt,tally,check,statusOf,wallSize} from './format.js';
 import {newGame,step,trySwap,canSwap,useBooster,canBooster,botMove,findMove,simulate} from './engine.js';
 import {LW,layoutOf,draw,cellAt,eventPops} from './render.js';
@@ -18,6 +18,7 @@ let levels=[],cur=0,tab='level',mode='edit';
 let undo=[],redo=[],lastSnap='';
 let tool='color',brushColor='R',brushHp=1;
 let prefs={chocoLayers:3,botRuns:20,botThink:0.5,zoom:'width'};
+let chocoBrush='3';
 const L=()=>levels[cur];
 
 const BASE=(()=>{const t=JSON.stringify(ORIGINAL);let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return String(h>>>0);})();
@@ -27,14 +28,14 @@ function load(){
   try{saved=JSON.parse(localStorage.getItem(STORE)||'null');}catch(e){}
   if(saved&&Array.isArray(saved.levels)&&saved.levels.length){levels=saved.levels.map(normalize);cur=Math.min(saved.cur|0,levels.length-1);savedBase=saved.base||'';}
   else{levels=ORIGINAL.map(normalize);cur=0;}
-  try{const p=JSON.parse(localStorage.getItem(STORE+'.prefs')||'{}');Object.assign(prefs,p.prefs||{});if(p.tool)tool=p.tool;if(p.brushColor)brushColor=p.brushColor;if(p.brushHp)brushHp=p.brushHp;}catch(e){}
+  try{const p=JSON.parse(localStorage.getItem(STORE+'.prefs')||'{}');Object.assign(prefs,p.prefs||{});if(p.tool)tool=p.tool;if(p.brushColor)brushColor=p.brushColor;if(p.brushHp)brushHp=p.brushHp;if(p.chocoBrush)chocoBrush=p.chocoBrush;}catch(e){}
 }
 const STALE='The built-in levels changed since you last saved here. Press Reset to sheet to load them (export first to keep your edits).';
 function persist(){
   try{localStorage.setItem(STORE,JSON.stringify({levels,cur,base:savedBase}));$('#saveNote').textContent=savedBase===BASE?'Changes are saved in this browser.':STALE;}
   catch(e){$('#saveNote').textContent='This browser is not saving changes. Export before you close the page.';}
 }
-function savePrefs(){try{localStorage.setItem(STORE+'.prefs',JSON.stringify({prefs,tool,brushColor,brushHp}));}catch(e){}}
+function savePrefs(){try{localStorage.setItem(STORE+'.prefs',JSON.stringify({prefs,tool,brushColor,brushHp,chocoBrush}));}catch(e){}}
 const origByName=n=>ORIGINAL.find(o=>o.Name===n);
 const isChanged=lv=>{const o=origByName(lv.Name);return !o||serialize(o)!==serialize(lv);};
 
@@ -135,11 +136,14 @@ function applyTool(hit,first){
     const cellOn=lv.BoardRows[r][c]!==HOLE,el=lv.BoardElements[r][c];
     if(tool==='cell'){
       if(first)strokeState=!cellOn;
-      if(strokeState){lv.BoardRows[r]=setCh(lv.BoardRows[r],c,'.');}
+      if(strokeState){if(!cellOn)lv.BoardRows[r]=setCh(lv.BoardRows[r],c,'.');}
       else{if(el===TRAY)removeTrayAt(lv,r,c);lv.BoardElements[r]=setCh(lv.BoardElements[r],c,'.');lv.BoardRows[r]=setCh(lv.BoardRows[r],c,HOLE);}
     }else if(tool==='choco'){
       if(el===TRAY)removeTrayAt(lv,r,c);
-      lv.BoardRows[r]=setCh(lv.BoardRows[r],c,'.');lv.BoardElements[r]=setCh(lv.BoardElements[r],c,CHOCO);
+      if(lv.BoardRows[r][c]===HOLE)lv.BoardRows[r]=setCh(lv.BoardRows[r],c,'.');lv.BoardElements[r]=setCh(lv.BoardElements[r],c,chocoBrush);
+    }else if(tool==='bcolor'){
+      if(first)strokeState=lv.BoardRows[r][c]===brushColor?'.':brushColor;
+      if(el!==TRAY)lv.BoardRows[r]=setCh(lv.BoardRows[r],c,strokeState);
     }else if(tool==='clear'){
       if(el===TRAY)removeTrayAt(lv,r,c);else lv.BoardElements[r]=setCh(lv.BoardElements[r],c,'.');
     }else if(tool==='tray'&&first){
@@ -208,8 +212,12 @@ function renderEdit(){
     const x=E.bx0+c*E.bc,y=E.boardTop+r*E.bc,on=(lv.BoardRows[r]||'')[c]!==HOLE,e=(lv.BoardElements[r]||'')[c];
     if(!on){el('rect',{class:'hole',x:x+1,y:y+1,width:E.bc-2,height:E.bc-2,rx:6},svg);continue;}
     el('rect',{class:'bcell'+((r+c)%2?' alt':''),x,y,width:E.bc,height:E.bc},svg);
-    if(e===CHOCO){el('rect',{class:'choco',x:x+bo,y:y+bo,width:bs,height:bs,rx:bs*0.18},svg);
-      const t=el('text',{class:'chocon',x:x+E.bc/2,y:y+E.bc/2,'font-size':E.bc*0.42},svg);t.textContent=String(prefs.chocoLayers);}
+    const pc=(lv.BoardRows[r]||'')[c],preset=/^[A-Z]$/.test(pc)?pc:null;
+    if(preset&&!isChoco(e)&&e!==TRAY){const q=el('rect',{class:'preset',x:x+bo+2,y:y+bo+2,width:bs-4,height:bs-4,rx:bs*0.22,fill:colorHex(preset)},svg);
+      el('title',{},q).textContent=`Starts as ${colorName(preset)}`;}
+    if(isChoco(e)){el('rect',{class:'choco',x:x+bo,y:y+bo,width:bs,height:bs,rx:bs*0.18},svg);
+      const t=el('text',{class:'chocon'+(e===CHOCO?' def':''),x:x+E.bc/2,y:y+E.bc/2,'font-size':E.bc*0.42},svg);t.textContent=String(chocoHp(e,prefs.chocoLayers));
+      if(preset)el('circle',{class:'presetdot',cx:x+E.bc-bo-7,cy:y+bo+7,r:5,fill:colorHex(preset)},svg);}
   }
   findTrays(lv.BoardElements).trays.forEach((t,i)=>{const x=E.bx0+t.c*E.bc,y=E.boardTop+t.r*E.bc;
     el('rect',{class:'tray',x:x+3,y:y+3,width:E.bc*2-6,height:E.bc*2-6,rx:10},svg);
@@ -238,7 +246,7 @@ const sameHit=(a,b)=>a&&b&&a.area===b.area&&a.r===b.r&&a.c===b.c&&a.i===b.i;
 svg.addEventListener('pointerdown',e=>{
   const h=hitAt(e);if(!h)return;
   if(h.area==='wall'&&!['color','hp','queen','erase'].includes(tool)){setTool(tool==='clear'?'erase':'color');}
-  if(h.area==='board'&&!['cell','choco','tray','clear'].includes(tool)){setTool('choco');toast('Board tool: Chocolate. Pick Cell, Tray or Clear in the toolbar.');}
+  if(h.area==='board'&&!['cell','choco','tray','clear','bcolor'].includes(tool)){setTool('choco');toast('Board tool: Chocolate. Pick Cell, Tray or Clear in the toolbar.');}
   painting=true;svg.setPointerCapture(e.pointerId);hover=h;applyTool(h,true);renderEdit();
 });
 svg.addEventListener('pointermove',e=>{
@@ -262,13 +270,15 @@ function syncTools(){
   else if(tool==='queen')h=`<span class="hint">Click to place a 2×2 queen, click a queen to remove it.</span>`;
   else if(tool==='tray')h=`<span class="hint">Click to place a 2×2 tray, click a tray to remove it. Bottle colors: Board tab.</span>`;
   else if(tool==='cell')h=`<span class="hint">Click or drag to add or remove board cells.</span>`;
-  else if(tool==='choco')h=`<span class="hint">Chocolate Layer, ${prefs.chocoLayers} layers in play test.</span>`;
+  else if(tool==='choco')h=`<span class="hint gl">HP</span>`+['X','1','2','3','4','5','6','7','8','9'].map(n=>`<button type="button" class="tb hpb" data-choco="${n}" aria-pressed="${n===chocoBrush}" title="${n==='X'?`X: default HP (${prefs.chocoLayers}, set in the Board tab)`:`Chocolate with ${n} HP`}">${n}</button>`).join('');
+  else if(tool==='bcolor')h=`<span class="hint gl">Start color</span>`+cols.map((k,i)=>`<button type="button" class="sw" data-brush="${k}" style="background:${colorHex(k)}" aria-pressed="${k===brushColor}" title="${colorName(k)}">${k}</button>`).join('')+`<span class="hint">Click again to make it random.</span>`;
   $('#brush').innerHTML=h;
 }
 $$('[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
 $('#zoom').addEventListener('change',e=>{prefs.zoom=e.target.value;savePrefs();renderEdit();});
 $('#brush').addEventListener('click',e=>{const b=e.target.closest('[data-brush]');if(b){brushColor=b.dataset.brush;savePrefs();syncTools();}
-  const h=e.target.closest('[data-hp]');if(h){brushHp=+h.dataset.hp;savePrefs();syncTools();}});
+  const h=e.target.closest('[data-hp]');if(h){brushHp=+h.dataset.hp;savePrefs();syncTools();}
+  const ch=e.target.closest('[data-choco]');if(ch){chocoBrush=ch.dataset.choco;savePrefs();syncTools();}});
 
 /* ---------- inspector ---------- */
 function fld(label,key,inner,cls){return `<label class="fld${cls?' '+cls:''}"><span>${label}${key?` <code>${key}</code>`:''}</span>${inner}</label>`;}
@@ -292,7 +302,7 @@ function renderPane(){
       <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. You can also click a slot in the design view (Shift-click counts down).</p>
       <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="9" data-lock="${i}" value="${+locks[i]||0}"></label>`).join('')}</div>
       <h3>Elements in this level</h3>${elementSummary(lv)}
-      <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T</kbd><span>Board tools: Cell, Chocolate, Tray</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
+      <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T K</kbd><span>Board tools: Cell, Chocolate, Tray, Start color</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
     $('#fName').addEventListener('change',e=>{const v=e.target.value.trim()||lv.Name;lv.Name=v;commit();$('#lvTitle').textContent=v;});
     $('#fDiff').addEventListener('change',e=>{lv.Difficulty=+e.target.value;commit();});
     $('#fQueen').addEventListener('change',e=>{lv.QueenHp=Math.max(1,+e.target.value||1);commit();renderEdit();});
@@ -330,15 +340,16 @@ function renderPane(){
     const tr=findTrays(lv.BoardElements).trays;
     p.innerHTML=`<h2>Board</h2>
       <div class="fields">${fld('Width','BoardWidth',num('bW',lv.BoardWidth,'min="3" max="12"'))}${fld('Height','BoardHeight',num('bH',lv.BoardHeight,'min="3" max="12"'))}</div>
-      <p class="hint"><code>BoardRows</code>: "." cell, "#" no cell. <code>BoardElements</code>: "X" Chocolate Layer, "T" Jelly Bottle tray (2×2).</p>
+      <p class="hint"><code>BoardRows</code>: "." cell, "#" no cell, a color letter = the cube starts with that color (under a chocolate: the cube it shows when it breaks). <code>BoardElements</code>: a digit 1–9 = Chocolate Layer with that HP, "X" = chocolate with the default HP, "T" Jelly Bottle tray (2×2).</p>
       <div class="btns"><button class="btn" id="bMirror" type="button">Mirror shape left → right</button><button class="btn" id="bFull" type="button">All cells on</button><button class="btn" id="bClear" type="button">Remove all elements</button></div>
       <h3>Jelly Bottle trays <code>TrayBottles</code></h3>
       ${tr.length?tr.map((t,i)=>`<div class="elem"><b>Tray ${i+1} · row ${t.r+1}, cell ${t.c+1}</b>
         <div class="bottles">${[0,1,2,3].map(j=>`<select data-tray="${i}" data-b="${j}" aria-label="Tray ${i+1} bottle ${j+1}">${[...String(lv.Colors)].map(k=>`<option value="${k}" ${((lv.TrayBottles[i]||'')[j])===k?'selected':''}>${k} · ${colorName(k)}</option>`).join('')}</select>`).join('')}</div>
         <p class="hint">Order: top left, top right, bottom left, bottom right.</p></div>`).join(''):'<p class="hint">No trays. Pick the Tray tool and click the board.</p>'}
       <h3>Chocolate Layer</h3>
-      <div class="fields">${fld('Layers per chocolate (play test)','',num('bLayers',prefs.chocoLayers,'min="1" max="3"'))}</div>
-      <p class="hint">The level file has no layer count for "X", so the tool uses this number for every chocolate. It is not exported.</p>`;
+      <p class="hint">HP per chocolate is the digit in <code>BoardElements</code>; pick it with the Chocolate tool. Each match next to it takes 1 HP.</p>
+      <div class="fields">${fld('Default HP for "X"','',num('bLayers',prefs.chocoLayers,'min="1" max="9"'))}</div>
+      <p class="hint">Only used for cells still written as "X". Not exported.</p>`;
     $('#bW').addEventListener('change',e=>{resizeBoard(lv,Math.max(3,Math.min(12,+e.target.value||3)),lv.BoardHeight);commit();renderAll();});
     $('#bH').addEventListener('change',e=>{resizeBoard(lv,lv.BoardWidth,Math.max(3,Math.min(12,+e.target.value||3)));commit();renderAll();});
     $('#bMirror').addEventListener('click',()=>{const before=trayMap(lv);lv.BoardRows=lv.BoardRows.map(r=>{const h=Math.floor(r.length/2);return r.slice(0,r.length-h)+[...r.slice(0,h)].reverse().join('');});
@@ -346,7 +357,7 @@ function renderPane(){
     $('#bFull').addEventListener('click',()=>{lv.BoardRows=lv.BoardRows.map(r=>'.'.repeat(r.length));commit();renderAll();});
     $('#bClear').addEventListener('click',()=>{lv.BoardElements=lv.BoardElements.map(r=>'.'.repeat(r.length));lv.TrayBottles=[];commit();renderAll();});
     $$('[data-tray]').forEach(s=>s.addEventListener('change',e=>{const i=+e.target.dataset.tray,j=+e.target.dataset.b;lv.TrayBottles[i]=setCh(String(lv.TrayBottles[i]||'').padEnd(4,lv.Colors[0]||'R'),j,e.target.value);commit();renderEdit();refreshChecks();}));
-    $('#bLayers').addEventListener('change',e=>{prefs.chocoLayers=Math.max(1,Math.min(3,+e.target.value||3));savePrefs();renderEdit();syncTools();});
+    $('#bLayers').addEventListener('change',e=>{prefs.chocoLayers=Math.max(1,Math.min(9,+e.target.value||3));savePrefs();renderEdit();syncTools();});
   }
   else if(tab==='tuning'){
     p.innerHTML=`<h2>Tuning</h2><p class="hint">Wall speed, speed-up, lose line and timings. Distances are in wall cells.</p>
@@ -605,9 +616,9 @@ document.addEventListener('keydown',e=>{
   if(mod&&k==='z'&&!e.shiftKey){doUndo();e.preventDefault();return;}
   if(mod&&(k==='y'||(k==='z'&&e.shiftKey))){doRedo();e.preventDefault();return;}
   if(mod)return;
-  const map={c:'color',h:'hp',q:'queen',e:'erase',b:'cell',x:'choco',t:'tray'};
+  const map={c:'color',h:'hp',q:'queen',e:'erase',b:'cell',x:'choco',t:'tray',k:'bcolor'};
   if(map[k]){setTool(map[k]);return;}
-  if(/^[1-9]$/.test(k)){if(tool==='hp'){brushHp=+k;}else{const c=String(L().Colors)[+k-1];if(c){brushColor=c;if(tool!=='color')setTool('color');}}savePrefs();syncTools();}
+  if(/^[1-9]$/.test(k)){if(tool==='hp'){brushHp=+k;}else if(tool==='choco'){chocoBrush=k;}else{const c=String(L().Colors)[+k-1];if(c){brushColor=c;if(tool!=='color'&&tool!=='bcolor')setTool('color');}}savePrefs();syncTools();}
 });
 document.addEventListener('paste',e=>{
   const a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;

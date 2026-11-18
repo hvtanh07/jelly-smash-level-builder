@@ -272,3 +272,6 @@ kbd{font:11px var(--mono);border:1px solid var(--line);border-bottom-width:2px;b
 .bottles select{border:1px solid var(--line);border-radius:6px;padding:4px;background:var(--paper)}
 .pc{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px}
 .bst:disabled{opacity:.45;cursor:default}
+#edit .preset{stroke:#fff;stroke-width:2;opacity:.9}
+#edit .presetdot{stroke:#fff;stroke-width:1.5}
+#edit .chocon.def{fill:#F3D9B1}

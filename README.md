@@ -34,8 +34,8 @@ The tool reads and writes the same keys, in the same order, as the game's level 
 | `WallRows` | The ant wall, one string per row. Row 1 is the back (top), the last row is the front, which starts in view. A color letter is an ant, `Q` is a Queen Ant cell (each 2×2 block is one queen), `.` is empty. |
 | `WallHp` | One digit per wall cell: shots to defeat that ant. 1 is a normal ant, 2 or more is an Armored Ant with armor HP − 1 (GDD: armor 3 = 4 shots). Ignored on Q cells. |
 | `QueenHp` | HP of every Queen Ant. Any cannon color hits her. |
-| `BoardRows` | `.` is a cell, `#` is no cell. |
-| `BoardElements` | `X` Chocolate Layer, `T` Jelly Bottle tray (2×2), `.` nothing. |
+| `BoardRows` | `.` is a cell, `#` is no cell. A color letter is a cell whose cube starts with that color; under a chocolate it is the cube shown when the chocolate breaks (my reading, see below). |
+| `BoardElements` | A digit 1–9 is a Chocolate Layer with that HP (1 match next to it = 1 HP). `X` is a chocolate with the default HP (3, set in the Board tab). `T` Jelly Bottle tray (2×2), `.` nothing. |
 | `TrayBottles` | One 4-letter string per tray, trays in reading order (top to bottom, left to right). Bottles: top left, top right, bottom left, bottom right. |
 | `SlotCount`, `SlotLocks` | Number of cannon slots, and one digit per slot: cannons that must enter a slot before it opens (0 = open). |
 | `WallStartVisibleRows`, `LoseDepthCells` | The front row starts this many rows into the view; the red line is `LoseDepthCells` rows below the top of the view. |
@@ -43,7 +43,7 @@ The tool reads and writes the same keys, in the same order, as the game's level 
 | `FireInterval`, `ShotFlight`, `SwapSeconds`, `MatchHold`, `MatchFlight`, `FallSeconds` | Timings in seconds. |
 | `RefillFrontShare` | Share of new cubes colored by the bottom-row colors of the wall; the rest is even. |
 
-Open questions, where the tool picked a reading: the Chocolate Layer count is not in the file (the tool uses 3, set in the Board tab, not exported); `Difficulty` is read as 0 Normal, 1 Hard, 2 Super hard.
+Open questions, where the tool picked a reading: a color letter in `BoardRows` (the `B` in L10) is read as a fixed start color; `X` without a digit keeps the default chocolate HP; `Difficulty` is read as 0 Normal, 1 Hard, 2 Super hard.
 
 ## Rules used by the play test
 
@@ -53,7 +53,7 @@ From the GDD, sections 1.2, 1.4 and 1.5:
 - Each match sends a cannon to the leftmost open, empty slot. Slots full: the cannon is lost. 3 cannons of one color merge into the leftmost with their ammo added. A cannon leaves at 0 ammo or when its color is gone from the wall.
 - Cannons fire every `FireInterval` at front ants of their color that are in view, lowest first, then left to right.
 - New cubes are colored so each bottom-row color gets a swap that makes a line of 3; if that fails, a few board cubes change color with a glow. No move left: the board reshuffles.
-- Chocolate Layer: a match next to it removes 1 layer; at 0 the cube under it opens. Nothing falls through it.
+- Chocolate Layer: a match next to it removes 1 HP; at 0 the cube under it opens. Nothing falls through it.
 - Jelly Bottle: a match next to the tray breaks the bottle of its color, +5 ammo. All 4 broken: the tray is gone and cubes fall in.
 - Locked Slot: every cannon that enters a slot counts each lock down by 1.
 - Hand: the fullest cannon fires all its ammo at any ant of its color, nearest first. Shuffle: new board, a swap ready per bottom-row color. Bomb: 3 cannons of bottom-row colors with 15 ammo each, outside the slots.

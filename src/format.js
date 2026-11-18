@@ -9,8 +9,10 @@ export const KEYS=['Name','Difficulty','Colors','SlotCount','WallRows','WallHp',
 /* Cell letters.
    WallRows: a color letter is an ant of that color, Q is a Queen Ant cell (2×2), "." is an empty cell.
    WallHp: shots to defeat the ant in that cell (1 = normal ant, 2+ = Armored Ant, armor = HP − 1). Ignored on Q cells.
-   BoardRows: "." is a cell, "#" is no cell.
-   BoardElements: "." nothing, "X" Chocolate Layer, "T" Jelly Bottle tray (2×2). */
+   BoardRows: "." is a cell, "#" is no cell, a color letter is a cell whose cube starts with that color
+     (under a chocolate: the cube it shows when it breaks).
+   BoardElements: "." nothing, a digit 1–9 is a Chocolate Layer with that HP, "X" a Chocolate Layer with the default HP,
+     "T" Jelly Bottle tray (2×2). */
 export const PALETTE=[
   {k:'R',name:'Red',hex:'#E5484D'},
   {k:'B',name:'Blue',hex:'#2F6FEB'},
@@ -25,6 +27,9 @@ export const COLOR_KEYS=PALETTE.map(p=>p.k);
 export const colorHex=k=>(PALETTE.find(p=>p.k===k)||{hex:'#888'}).hex;
 export const colorName=k=>k==='Q'?'Queen':(PALETTE.find(p=>p.k===k)||{name:k}).name;
 export const QUEEN='Q',EMPTY='.',HOLE='#',CHOCO='X',TRAY='T';
+export const CHOCO_DEFAULT_HP=3;
+export const isChoco=ch=>ch===CHOCO||/^[1-9]$/.test(ch||'');
+export const chocoHp=(ch,def)=>/^[1-9]$/.test(ch||'')?+ch:(def||CHOCO_DEFAULT_HP);
 export const DIFFICULTY=[{v:0,name:'Normal'},{v:1,name:'Hard'},{v:2,name:'Super hard'}];
 
 export const TUNING=[
@@ -136,7 +141,7 @@ export function tally(lv){
     const h=hpAt(lv,r,c);ants++;hp+=h;if(h>1)armored++;by[k]=by[k]||{ants:0,hp:0};by[k].ants++;by[k].hp+=h;}});
   const q=findQueens(rows).queens.length,qhp=q*(+lv.QueenHp||0);
   const {trays}=findTrays(lv.BoardElements||[]);
-  let choco=0;(lv.BoardElements||[]).forEach(r=>{for(const ch of r)if(ch===CHOCO)choco++;});
+  let choco=0;(lv.BoardElements||[]).forEach(r=>{for(const ch of r)if(isChoco(ch))choco++;});
   const locks=String(lv.SlotLocks||'').split('').filter(d=>d!=='0').length;
   return {ants,armored,hp,by,queens:q,queenHp:qhp,shots:hp+qhp,trays:trays.length,choco,locks};
 }
@@ -171,10 +176,11 @@ export function check(lv){
   if(br.length!==BH)bad(`BoardRows has ${br.length} rows, BoardHeight is ${BH}.`);
   if(be.length!==BH)bad(`BoardElements has ${be.length} rows, BoardHeight is ${BH}.`);
   br.forEach((row,r)=>{if(row.length!==BW)bad(`BoardRows row ${r+1} has ${row.length} cells, BoardWidth is ${BW}.`);
-    [...row].forEach((ch,c)=>{if(ch!=='.'&&ch!==HOLE)bad(`BoardRows row ${r+1}, cell ${c+1}: "${ch}" (use "." or "#").`);});});
+    [...row].forEach((ch,c)=>{if(ch!=='.'&&ch!==HOLE&&!colors.includes(ch))bad(`BoardRows row ${r+1}, cell ${c+1}: "${ch}" (use ".", "#" or a color from Colors).`);});});
   be.forEach((row,r)=>{if(row.length!==BW)bad(`BoardElements row ${r+1} has ${row.length} cells, BoardWidth is ${BW}.`);
     [...row].forEach((ch,c)=>{
-      if(ch!=='.'&&ch!==CHOCO&&ch!==TRAY)bad(`BoardElements row ${r+1}, cell ${c+1}: "${ch}" (use ".", "X" or "T").`);
+      if(ch!=='.'&&!isChoco(ch)&&ch!==TRAY)bad(`BoardElements row ${r+1}, cell ${c+1}: "${ch}" (use ".", a chocolate HP 1–9, "X" or "T").`);
+      if(ch===TRAY&&/[A-Z]/.test((br[r]||'')[c]||''))warn(`Board row ${r+1}, cell ${c+1}: a start color under a tray is ignored.`);
       if(ch!=='.'&&(br[r]||'')[c]===HOLE)bad(`BoardElements row ${r+1}, cell ${c+1}: an element on a cell that doesn't exist (#).`);});});
   const tr=findTrays(be);
   tr.stray.forEach(s=>bad(`Board row ${s.r+1}, cell ${s.c+1}: a T cell that is not part of a full 2×2 tray.`));

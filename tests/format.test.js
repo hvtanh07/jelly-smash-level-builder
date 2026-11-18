@@ -28,7 +28,7 @@ describe('level format',()=>{
     const lv=JSON.parse(demo),t=tally(lv);
     expect(findQueens(lv.WallRows).queens).toEqual([{r:23,c:5},{r:26,c:1},{r:26,c:9}]);
     expect(findTrays(lv.BoardElements).trays).toEqual([{r:3,c:2}]);
-    expect(t.choco).toBe(6);expect(t.locks).toBe(2);expect(t.queens).toBe(3);
+    expect(t.choco).toBe(6);expect(lv.BoardElements[3][5]).toBe('6');expect(t.locks).toBe(2);expect(t.queens).toBe(3);
     expect(t.ants+t.queens*4).toBe(12*28);
   });
   it('flags rows that do not line up',()=>{

@@ -69,3 +69,16 @@ describe('rules',()=>{
     expect(simulate(mini({WallDescentPerSecond:0.02}),{seed:3,maxTime:300}).result).toBe('win');
   });
 });
+
+describe('chocolate HP and start colors',()=>{
+  it('reads the chocolate HP digit and the start color under it',()=>{
+    const G=newGame(demo,{seed:1});
+    expect(G.cells[3][5]).toMatchObject({kind:'choco',layers:6,color:'B'});
+    expect(G.cells[3][6]).toMatchObject({kind:'choco',layers:3});
+  });
+  it('a color letter in BoardRows fixes the start color of that cube',()=>{
+    const rows=Array(6).fill('......');rows[0]='RR.B..';
+    for(let s=1;s<10;s++){const G=newGame(mini({BoardRows:rows}),{seed:s});
+      expect(G.cells[0][0].color).toBe('R');expect(G.cells[0][1].color).toBe('R');expect(G.cells[0][3].color).toBe('B');}
+  });
+});
