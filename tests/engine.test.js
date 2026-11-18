@@ -91,3 +91,7 @@ describe('fixed start cubes',()=>{
       expect([G.cells[2][1].color,G.cells[2][2].color,G.cells[3][0].color]).toEqual(['R','R','B']);}
   });
 });
+
+describe('empty SlotLocks',()=>{
+  it('opens every slot',()=>{const G=newGame(mini({SlotLocks:''}),{seed:1});expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,0,0]);});
+});

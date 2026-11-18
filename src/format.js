@@ -198,7 +198,8 @@ export function check(lv){
   // slots
   const n=+lv.SlotCount,locks=String(lv.SlotLocks||'');
   if(!(n>0))bad('SlotCount must be above 0.');
-  if(locks.length!==n)bad(`SlotLocks has ${locks.length} digits, SlotCount is ${n}.`);
+  if(locks.length&&locks.length!==n)bad(`SlotLocks has ${locks.length} digits, SlotCount is ${n}.`);
+  // an empty SlotLocks ("") means no locked slot, as in the game file
   if(!/^[0-9]*$/.test(locks))bad('SlotLocks must be digits (0 = open).');
   if(locks.length&&![...locks].includes('0'))bad('Every slot is locked: no cannon can ever enter, so no lock can open.');
   // tuning
