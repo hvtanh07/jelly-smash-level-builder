@@ -17,7 +17,7 @@ const inFrame=(()=>{try{return window.self!==window.top;}catch(e){return true;}}
 let levels=[],cur=0,tab='level',mode='edit';
 let undo=[],redo=[],lastSnap='';
 let tool='color',brushColor='R',brushHp=1;
-let prefs={chocoLayers:3,botRuns:20,botThink:0.5,zoom:'width'};
+let prefs={chocoLayers:3,chocoStarves:true,botRuns:20,botThink:0.5,zoom:'width'};
 let chocoBrush='3';
 const L=()=>levels[cur];
 
@@ -349,7 +349,9 @@ function renderPane(){
       <h3>Chocolate Layer</h3>
       <p class="hint">HP per chocolate is the digit in <code>BoardElements</code>; pick it with the Chocolate tool. Each match next to it takes 1 HP.</p>
       <div class="fields">${fld('Default HP for "X"','',num('bLayers',prefs.chocoLayers,'min="1" max="9"'))}</div>
-      <p class="hint">Only used for cells still written as "X". Not exported.</p>`;
+      <p class="hint">Only used for cells still written as "X". Not exported.</p>
+      <label class="chk"><input type="checkbox" id="bStarve" ${prefs.chocoStarves?'checked':''}> No new cubes below chocolate until it breaks</label>
+      <p class="hint">Trial rule for the play test and the bot, not in the GDD yet. Off: cells below a chocolate refill on their own.</p>`;
     $('#bW').addEventListener('change',e=>{resizeBoard(lv,Math.max(3,Math.min(12,+e.target.value||3)),lv.BoardHeight);commit();renderAll();});
     $('#bH').addEventListener('change',e=>{resizeBoard(lv,lv.BoardWidth,Math.max(3,Math.min(12,+e.target.value||3)));commit();renderAll();});
     $('#bMirror').addEventListener('click',()=>{const before=trayMap(lv);lv.BoardRows=lv.BoardRows.map(r=>{const h=Math.floor(r.length/2);return r.slice(0,r.length-h)+[...r.slice(0,h)].reverse().join('');});
@@ -358,6 +360,7 @@ function renderPane(){
     $('#bRandom').addEventListener('click',()=>{lv.BoardRows=lv.BoardRows.map(r=>r.replace(/[A-Z]/g,'.'));commit();renderAll();});
     $('#bClear').addEventListener('click',()=>{lv.BoardElements=lv.BoardElements.map(r=>'.'.repeat(r.length));lv.TrayBottles=[];commit();renderAll();});
     $$('[data-tray]').forEach(s=>s.addEventListener('change',e=>{const i=+e.target.dataset.tray,j=+e.target.dataset.b;lv.TrayBottles[i]=setCh(String(lv.TrayBottles[i]||'').padEnd(4,lv.Colors[0]||'R'),j,e.target.value);commit();renderEdit();refreshChecks();}));
+    $('#bStarve').addEventListener('change',e=>{prefs.chocoStarves=e.target.checked;savePrefs();});
     $('#bLayers').addEventListener('change',e=>{prefs.chocoLayers=Math.max(1,Math.min(9,+e.target.value||3));savePrefs();renderEdit();syncTools();});
   }
   else if(tab==='tuning'){
@@ -460,7 +463,7 @@ function runBot(){
   const tick=()=>{
     if(job!==botJob||!$('#botOut'))return;
     const t0=performance.now();
-    while(res.length<n&&performance.now()-t0<40)res.push(simulate(lv,{seed:1000+res.length,think:prefs.botThink,chocoLayers:prefs.chocoLayers}));
+    while(res.length<n&&performance.now()-t0<40)res.push(simulate(lv,{seed:1000+res.length,think:prefs.botThink,chocoLayers:prefs.chocoLayers,chocoStarves:prefs.chocoStarves}));
     const w=res.filter(r=>r.result==='win'),avg=(a,f)=>a.length?a.reduce((s,r)=>s+f(r),0)/a.length:0;
     $('#botOut').innerHTML=`<table class="tally"><tbody>
       <tr><td>Runs</td><td>${res.length}/${n}</td></tr>
@@ -486,7 +489,7 @@ function setMode(m){
 $('#modeEdit').addEventListener('click',()=>setMode('edit'));
 $('#modePlay').addEventListener('click',()=>{if(check(L()).some(i=>i.lvl==='bad')){toast('This level has errors. Open the Check tab.');tab='check';renderPane();return;}setMode('play');});
 function startGame(){
-  const seed=+$('#pSeed').value;G=newGame(clone(L()),{seed:isFinite(seed)?seed:1,chocoLayers:prefs.chocoLayers});GL=layoutOf(G);
+  const seed=+$('#pSeed').value;G=newGame(clone(L()),{seed:isFinite(seed)?seed:1,chocoLayers:prefs.chocoLayers,chocoStarves:prefs.chocoStarves});GL=layoutOf(G);
   ui={sel:null,hint:null,pops:[],dark:false};idle=0;botWait=prefs.botThink;banner();sizeCanvas();syncBoost();
 }
 function sizeCanvas(){

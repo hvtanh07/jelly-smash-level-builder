@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import fs from 'node:fs';
-import {newGame,step,ammoFor,pickTarget,useBooster,simulate,findGroups,available} from '../src/engine.js';
+import {newGame,step,ammoFor,pickTarget,useBooster,simulate,findGroups,available,trySwap} from '../src/engine.js';
 import {normalize} from '../src/format.js';
 
 const demo=JSON.parse(fs.readFileSync(new URL('./fixtures/level_demo.json',import.meta.url),'utf8'));
@@ -52,6 +52,16 @@ describe('rules',()=>{
     land(G,'R',3);step(G,1/60);land(G,'B',3);step(G,1/60);land(G,'R',5);step(G,1/60);
     expect(G.stats.lost).toBe(0);
     expect(G.slots.map(s=>s.cannon&&s.cannon.ammo)).toEqual([8,3]);
+  });
+  it('chocoStarves: cells below a chocolate get no new cubes',()=>{
+    for(const starve of [true,false]){
+      const G=newGame(mini({BoardElements:['......','......','999999','......','......','......']}),{seed:3,chocoStarves:starve});settle(G);G.wy=-5;
+      const cols='BGYBGY';for(let r=3;r<6;r++)for(let c=0;c<6;c++)G.cells[r][c].color=cols[(c+r)%6];
+      ['R','R','G','R'].forEach((k,c)=>{G.cells[5][c].color=k;});
+      expect(trySwap(G,[5,2],[5,3])).toBeTruthy();run(G,3);
+      const empty=[3,4,5].flatMap(r=>G.cells[r]).filter(x=>x.kind==='empty').length;
+      if(starve)expect(empty).toBeGreaterThanOrEqual(3);else expect(empty).toBe(0);
+    }
   });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);
