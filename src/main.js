@@ -355,8 +355,8 @@ function renderPane(){
       <p class="hint">HP per chocolate is the digit in <code>BoardElements</code>; pick it with the Chocolate tool. Each match next to it takes 1 HP.</p>
       <div class="fields">${fld('Default HP for "X"','',num('bLayers',prefs.chocoLayers,'min="1" max="9"'))}</div>
       <p class="hint">Only used for cells still written as "X". Not exported.</p>
-      <label class="chk"><input type="checkbox" id="bStarve" ${prefs.chocoStarves?'checked':''}> No new cubes below chocolate (until it breaks) or below a hole</label>
-      <p class="hint">GDD rule (on). Turn off to compare: cells below a chocolate or a hole then refill on their own.</p>`;
+      <label class="chk"><input type="checkbox" id="bStarve" ${prefs.chocoStarves?'checked':''}> Below chocolate, trays and holes: cubes slide in diagonally</label>
+      <p class="hint">GDD rule (on): no new cubes fall through a blocker; the cells under it fill from the upper-left or upper-right cube. Turn off to compare: those cells refill on their own.</p>`;
     $('#bW').addEventListener('change',e=>{resizeBoard(lv,Math.max(3,Math.min(12,+e.target.value||3)),lv.BoardHeight);commit();renderAll();});
     $('#bH').addEventListener('change',e=>{resizeBoard(lv,lv.BoardWidth,Math.max(3,Math.min(12,+e.target.value||3)));commit();renderAll();});
     $('#bMirror').addEventListener('click',()=>{const before=trayMap(lv);lv.BoardRows=lv.BoardRows.map(r=>{const h=Math.floor(r.length/2);return r.slice(0,r.length-h)+[...r.slice(0,h)].reverse().join('');});
