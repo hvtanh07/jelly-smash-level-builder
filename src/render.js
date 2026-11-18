@@ -93,7 +93,7 @@ export function draw(g,G,L,ui){
   for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(!x||x.kind==='empty')continue;
     let px=L.bx0+c*L.bc,py=L.boardTop+r*L.bc;
     if(x.kind==='cube'){
-      if(x.from!=null&&G.state==='fall')py=L.boardTop+lerp(x.from,r,fallT)*L.bc;
+      if(x.from!=null&&G.state==='fall'){py=L.boardTop+lerp(x.from,r,fallT)*L.bc;if(x.fromC!=null&&x.fromC!==c)px=L.bx0+lerp(x.fromC,c,fallT)*L.bc;}
       if(G.swapPair&&swapT<1){const [a,b]=G.swapPair;const me=a[0]===r&&a[1]===c?b:b[0]===r&&b[1]===c?a:null;
         if(me){px=lerp(L.bx0+me[1]*L.bc,px,ease(swapT));py=lerp(L.boardTop+me[0]*L.bc,py,ease(swapT));}}
       let k=1;if(x.dying)k=0.85+0.15*Math.sin(G.t*30);

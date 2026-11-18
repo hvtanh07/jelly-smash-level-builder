@@ -265,30 +265,44 @@ function clearGroups(G){
   gravity(G);
   G.state='fall';G.timer=+G.lv.FallSeconds||0;
 }
-/* Cubes fall inside each column, through missing cells (#). Chocolate and trays stay put and nothing falls through them,
-   so the cells under one refill from right under it. */
+/* Cubes fall inside each column, through missing cells (#) above the column's first cell.
+   Chocolate, trays and holes (#) with cells above them are blockers: nothing falls through them.
+   chocoStarves on (GDD rule): no new cubes enter below a blocker; instead the cells there are filled the Candy Crush way,
+   a cube slides in diagonally from the upper-left or upper-right cell, and its own column then falls and refills.
+   chocoStarves off (old tool option): the cells under a blocker refill on their own. */
+function blockerAt(G,r,c){const x=G.cells[r]&&G.cells[r][c];return !x||x.kind==='choco'||x.kind==='tray';}
+function columnSegments(G,c){
+  let seg=[],fed=true,top=true;const segs=[];
+  for(let r=0;r<G.BH;r++){const x=G.cells[r][c];
+    if(!x){if(top)continue;if(seg.length)segs.push({rows:seg,fed});seg=[];if(G.opt.chocoStarves)fed=false;continue;}
+    top=false;
+    if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push({rows:seg,fed});seg=[];if(G.opt.chocoStarves)fed=false;continue;}
+    seg.push(r);}
+  if(seg.length)segs.push({rows:seg,fed});
+  return segs;
+}
+function fallColumns(G,w){
+  for(let c=0;c<G.BW;c++)for(const {rows:s,fed:f} of columnSegments(G,c)){
+    const keep=[];for(let i=s.length-1;i>=0;i--){const x=G.cells[s[i]][c];if(x.kind==='cube')keep.push(x);}
+    for(let i=s.length-1,j=0;i>=0;i--,j++){const r=s[i];
+      if(j<keep.length){G.cells[r][c]=keep[j];}
+      else if(!f){G.cells[r][c]={kind:'empty'};}
+      else{const k=j-keep.length;G.cells[r][c]={kind:'cube',color:pickColor(G,w,new Set()),from:s[0]-1-k,fromC:c,fresh:true};}}
+  }
+}
+/* one diagonal slide: the lowest empty cell whose cell above is a blocker or empty takes a cube from above-left or above-right */
+function slideDiagonal(G){
+  for(let r=G.BH-1;r>=1;r--)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(!x||x.kind!=='empty')continue;
+    const up=G.cells[r-1][c];if(!(blockerAt(G,r-1,c)||up.kind==='empty'))continue;
+    for(const dc of (G.rng()<.5?[-1,1]:[1,-1])){const y=G.cells[r-1]&&G.cells[r-1][c+dc];
+      if(y&&y.kind==='cube'){G.cells[r][c]=y;if(y.from==null)y.from=r-1;y.fromC=y.fromC!=null?y.fromC:c+dc;G.cells[r-1][c+dc]={kind:'empty'};return true;}}}
+  return false;
+}
 function gravity(G){
   const w=spawnWeights(G);
-  for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(x&&x.kind==='cube'){x.from=r;}}
-  for(let c=0;c<G.BW;c++){
-    // chocoStarves (GDD 1.4): no new cubes below a chocolate in the same column until it breaks.
-    // The same option makes a hole (# cell) with cells above it block refill below it for good;
-    // holes above the column's first cell do not count, new cubes enter at that first cell.
-    let seg=[],fed=true,top=true;const segs=[];
-    for(let r=0;r<G.BH;r++){const x=G.cells[r][c];
-      if(!x){if(top)continue;if(G.opt.chocoStarves){if(seg.length)segs.push({rows:seg,fed});seg=[];fed=false;}continue;}
-      top=false;
-      if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push({rows:seg,fed});seg=[];if(x.kind==='choco'&&G.opt.chocoStarves)fed=false;continue;}
-      seg.push(r);}
-    if(seg.length)segs.push({rows:seg,fed});
-    for(const {rows:s,fed:f} of segs){
-      const keep=[];for(let i=s.length-1;i>=0;i--){const x=G.cells[s[i]][c];if(x.kind==='cube')keep.push(x);}
-      for(let i=s.length-1,j=0;i>=0;i--,j++){const r=s[i];
-        if(j<keep.length){G.cells[r][c]=keep[j];}
-        else if(!f){G.cells[r][c]={kind:'empty'};}
-        else{const k=j-keep.length;G.cells[r][c]={kind:'cube',color:pickColor(G,w,new Set()),from:s[0]-1-k,fresh:true};}}
-    }
-  }
+  for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(x&&x.kind==='cube'){x.from=r;x.fromC=c;}}
+  fallColumns(G,w);
+  if(G.opt.chocoStarves)for(let it=0;it<G.BW*G.BH*2&&slideDiagonal(G);it++)fallColumns(G,w);
   // GDD 1.2 Help: after each match, color the new cubes so each bottom-row color gets a swap that makes a line of 3
   const cols=allowedCols(G,bottomColors(G));
   if(cols.size&&findGroups(G).length===0){
@@ -410,7 +424,7 @@ export function step(G,dt){
       }else if(G.state==='swapback')G.state='idle';
       else if(G.state==='hold')clearGroups(G);
       else if(G.state==='fall'){
-        for(const row of G.cells)for(const x of row)if(x)delete x.from;
+        for(const row of G.cells)for(const x of row)if(x){delete x.from;delete x.fromC;}
         const g=findGroups(G);
         if(g.length&&!G.initialFall)startHold(G,g);
         else{G.initialFall=false;

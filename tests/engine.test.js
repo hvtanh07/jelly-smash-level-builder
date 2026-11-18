@@ -63,15 +63,13 @@ describe('rules',()=>{
       if(starve)expect(empty).toBeGreaterThanOrEqual(3);else expect(empty).toBe(0);
     }
   });
-  it('chocoStarves: a hole with cells above it blocks refill below; a top hole does not',()=>{
+  it('chocoStarves: cells below a hole get cubes that slide in diagonally from the next column',()=>{
     const G=newGame(mini({BoardRows:['#.....','......','#.####','......','......','......']}),{seed:3,chocoStarves:true});settle(G);G.wy=-5;
     const cols='BGYBGY';for(let r=0;r<6;r++)for(let c=0;c<6;c++){const x=G.cells[r][c];if(x)x.color=cols[(c+r)%6];}
     ['R','R','G','R'].forEach((k,c)=>{G.cells[5][c].color=k;});
     expect(trySwap(G,[5,2],[5,3])).toBeTruthy();run(G,3);
-    // cols 0-2 cleared: col 0 (top hole only) and col 1 refill, col 2 (hole at row 2) does not
-    expect(G.cells[5][0].kind).toBe('cube');
-    expect([3,4,5].map(r=>G.cells[r][2].kind)).toContain('empty');
-    expect(G.cells[5][1].kind).toBe('cube');
+    // cols 0-2 cleared: col 0 (top hole only) and col 1 refill from the top, col 2 (hole at row 2) is fed from col 1 diagonally
+    expect([3,4,5].flatMap(r=>[0,1,2].map(c=>G.cells[r][c].kind))).not.toContain('empty');
   });
   it('RefillColors: new cubes only get the listed colors',()=>{
     const G=newGame(mini({RefillColors:'BY'}),{seed:5});settle(G);
