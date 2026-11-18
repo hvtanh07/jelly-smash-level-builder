@@ -47,6 +47,14 @@ describe('rules',()=>{
     land(G,'R',3);land(G,'B',3);land(G,'G',3);step(G,1/60);
     expect(G.stats.lost).toBe(1);
   });
+  it('full slots still merge a third cannon of a color, freeing a slot',()=>{
+    const G=newGame(mini({SlotCount:3,SlotLocks:'000'}),{seed:1});settle(G);G.wy=-5;
+    land(G,'R',3);land(G,'B',3);land(G,'R',4);step(G,1/60);
+    land(G,'R',5);step(G,1/60);
+    expect(G.stats.lost).toBe(0);
+    expect(G.slots.filter(s=>s.cannon).length).toBe(2);
+    expect(G.slots[0].cannon.ammo).toBe(12);
+  });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);
     land(G,'R',3);run(G,2);
