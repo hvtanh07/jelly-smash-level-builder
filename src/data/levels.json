@@ -601,24 +601,24 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "BGBRRBGB",
-      "BGOYYOGB",
-      "GOGRRGOG",
-      "RGGRRGGR",
-      "BBYBBYBB",
-      "YROYYORY",
-      "BROGGORB",
-      "RYBOOBYR"
+      "YGRGGRGY",
+      "GYRYYRYG",
+      "BOBYYBOB",
+      "RYGBBGYR",
+      "RGRRRRGR",
+      "GBGRRGBG",
+      "YGBOOBGY",
+      "RGYGGYGR"
     ],
     "BoardElements": [
       "........",
       "........",
-      "11111111",
-      "22222222",
       "........",
       "........",
-      "........",
-      "........"
+      ".233332.",
+      ".1....1.",
+      ".1....1.",
+      ".1....1."
     ],
     "TrayBottles": [],
     "QueenHp": 18,
