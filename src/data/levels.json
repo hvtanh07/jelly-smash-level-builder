@@ -511,7 +511,7 @@
       "1111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.09,
+    "WallDescentPerSecond": 0.34,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
@@ -520,14 +520,14 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "BOGBBGOB",
-      "GYRGGRYG",
-      "BRBRRBRB",
-      "BGRBBRGB",
-      "YBRYYRBY",
-      "GGRBBRGG",
-      "RYYGGYYR",
-      "BRYGGYRB"
+      "ORYGGYRO",
+      "BROYYORB",
+      "YOORROOY",
+      "ORRYYRRO",
+      "GGYRRYGG",
+      "YBRBBRBY",
+      "GGYGGYGG",
+      "YGGYYGGY"
     ],
     "BoardElements": [
       "........",
@@ -548,7 +548,7 @@
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.4
+    "RefillFrontShare": 0.3
   },
   {
     "Name": "L8",
@@ -592,7 +592,7 @@
       "1111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.105,
+    "WallDescentPerSecond": 0.41,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
@@ -601,14 +601,14 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "YROGGORY",
-      "RYYGGYYR",
-      "GGROORGG",
-      "OGRGGRGO",
-      "YYRYYRYY",
-      "RORGGROR",
-      "ROBOOBOR",
-      "RBRYYRBR"
+      "BYBOOBYB",
+      "OYGYYGYO",
+      "YOYOOYOY",
+      "YOOGGOOY",
+      "GGGGGGGG",
+      "YBOGGOBY",
+      "RRRGGRRR",
+      "GRYOOYRG"
     ],
     "BoardElements": [
       "........",
@@ -629,7 +629,7 @@
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.4
+    "RefillFrontShare": 0.3
   },
   {
     "Name": "L9",
@@ -770,7 +770,7 @@
       "111111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.13,
+    "WallDescentPerSecond": 0.31,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
@@ -779,14 +779,14 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "OYGOOGYO",
-      "BYOBBOYB",
-      "GBYOOYBG",
-      "GGBOOBGG",
-      "YYBOOBYY",
-      "YYOGGOYY",
-      "RBGBBGBR",
-      "BRBBBBRB"
+      "YOBOOBOY",
+      "BGROORGB",
+      "GRYYYYRG",
+      "ORORRORO",
+      "YOOBBOOY",
+      "OBOOOOBO",
+      "GYBYYBYG",
+      "BBRYYRBB"
     ],
     "BoardElements": [
       "...22...",
@@ -807,6 +807,6 @@
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.4
+    "RefillFrontShare": 0.3
   }
 ]

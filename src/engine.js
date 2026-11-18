@@ -12,7 +12,7 @@ export const praise=n=>n>=10?'Epic':n>=8?'Extreme':n>=6?'Amazing':n>=5?'Great':'
 export function newGame(lv,opt={}){
   const rng=mulberry32(opt.seed==null?(Math.random()*1e9)|0:opt.seed);
   const rows=lv.WallRows||[],R=rows.length,C=Math.max(0,...rows.map(r=>r.length));
-  const G={lv,rng,opt:{chocoLayers:3,...opt},t:0,started:false,over:null,events:[],
+  const G={lv,rng,opt:{chocoLayers:3,chocoStarves:false,...opt},t:0,started:false,over:null,events:[],
     R,C,wy:+lv.WallStartVisibleRows||0,boost:1,ants:[],cellAnt:[],
     BW:+lv.BoardWidth,BH:+lv.BoardHeight,cells:[],trays:[],state:'idle',timer:0,swapPair:null,holdGroups:null,
     slots:[],flights:[],shots:[],volleys:[],hint:null,goodCols:'',
@@ -264,15 +264,17 @@ function gravity(G){
   const w=spawnWeights(G);
   for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(x&&x.kind==='cube'){x.from=r;}}
   for(let c=0;c<G.BW;c++){
-    let seg=[];const segs=[];
+    // chocoStarves (tool trial): no new cubes below a chocolate in the same column until it breaks
+    let seg=[],fed=true;const segs=[];
     for(let r=0;r<G.BH;r++){const x=G.cells[r][c];if(!x)continue;
-      if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push(seg);seg=[];continue;}
+      if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push({rows:seg,fed});seg=[];if(x.kind==='choco'&&G.opt.chocoStarves)fed=false;continue;}
       seg.push(r);}
-    if(seg.length)segs.push(seg);
-    for(const s of segs){
+    if(seg.length)segs.push({rows:seg,fed});
+    for(const {rows:s,fed:f} of segs){
       const keep=[];for(let i=s.length-1;i>=0;i--){const x=G.cells[s[i]][c];if(x.kind==='cube')keep.push(x);}
       for(let i=s.length-1,j=0;i>=0;i--,j++){const r=s[i];
         if(j<keep.length){G.cells[r][c]=keep[j];}
+        else if(!f){G.cells[r][c]={kind:'empty'};}
         else{const k=j-keep.length;G.cells[r][c]={kind:'cube',color:pickColor(G,w,new Set()),from:s[0]-1-k,fresh:true};}}
     }
   }
@@ -452,7 +454,7 @@ export function botMove(G){
   return bs<0?null:best;
 }
 export function simulate(lv,opt={}){
-  const G=newGame(lv,{seed:opt.seed,chocoLayers:opt.chocoLayers});
+  const G=newGame(lv,{seed:opt.seed,chocoLayers:opt.chocoLayers,chocoStarves:opt.chocoStarves});
   const dt=opt.dt||1/30,maxT=opt.maxTime||900,think=opt.think==null?0.5:opt.think;
   let wait=think;
   while(!G.over&&G.t<maxT){
