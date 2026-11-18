@@ -511,7 +511,7 @@
       "1111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.34,
+    "WallDescentPerSecond": 0.09,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
@@ -592,7 +592,7 @@
       "1111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.41,
+    "WallDescentPerSecond": 0.105,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
@@ -601,24 +601,24 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "BYBOOBYB",
-      "OYGYYGYO",
-      "YOYOOYOY",
-      "YOOGGOOY",
-      "GGGGGGGG",
-      "YBOGGOBY",
-      "RRRGGRRR",
-      "GRYOOYRG"
+      "BGBRRBGB",
+      "BGOYYOGB",
+      "GOGRRGOG",
+      "RGGRRGGR",
+      "BBYBBYBB",
+      "YROYYORY",
+      "BROGGORB",
+      "RYBOOBYR"
     ],
     "BoardElements": [
       "........",
       "........",
-      "........",
-      "........",
-      "11111111",
       "11111111",
       "22222222",
-      "22222222"
+      "........",
+      "........",
+      "........",
+      "........"
     ],
     "TrayBottles": [],
     "QueenHp": 18,
@@ -629,7 +629,7 @@
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.4
   },
   {
     "Name": "L9",
@@ -770,7 +770,7 @@
       "111111111111"
     ],
     "WallStartVisibleRows": 4,
-    "WallDescentPerSecond": 0.31,
+    "WallDescentPerSecond": 0.13,
     "WallBoostFactor": 5,
     "WallBoostMinRows": 4,
     "WallBoostMinAnts": 8,
