@@ -1,0 +1,455 @@
+/* Jelly Smash rules for the play test, the bot and the tests. No DOM here.
+   Rules follow the GDD (sections 1.1, 1.2, 1.4, 1.5) and the timings in the level file.
+   Positions on the ant wall are in cells, measured down from the top of the ant view. */
+import {findQueens,findTrays,hpAt,QUEEN,EMPTY,HOLE,CHOCO,TRAY} from './format.js';
+
+export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+export const ammoFor=n=>2*n-3;            // GDD 1.2: ammo = 2n − 3
+export const BOTTLE_BONUS=5;               // GDD 1.4 Jelly Bottle
+export const BOMB_AMMO=15;                 // GDD 1.5 Bomb
+export const praise=n=>n>=10?'Epic':n>=8?'Extreme':n>=6?'Amazing':n>=5?'Great':'';
+
+export function newGame(lv,opt={}){
+  const rng=mulberry32(opt.seed==null?(Math.random()*1e9)|0:opt.seed);
+  const rows=lv.WallRows||[],R=rows.length,C=Math.max(0,...rows.map(r=>r.length));
+  const G={lv,rng,opt:{chocoLayers:3,...opt},t:0,started:false,over:null,events:[],
+    R,C,wy:+lv.WallStartVisibleRows||0,boost:1,ants:[],cellAnt:[],
+    BW:+lv.BoardWidth,BH:+lv.BoardHeight,cells:[],trays:[],state:'idle',timer:0,swapPair:null,holdGroups:null,
+    slots:[],flights:[],shots:[],volleys:[],hint:null,goodCols:'',
+    stats:{swaps:0,matches:0,cannons:0,lost:0,lostAmmo:0,merges:0,shots:0,reshuffles:0,boosters:{hand:0,shuffle:0,bomb:0}}};
+  // ant wall
+  for(let r=0;r<R;r++)G.cellAnt.push(new Array(C).fill(-1));
+  const {queens}=findQueens(rows);
+  queens.forEach(q=>{const a={id:G.ants.length,r:q.r,c:q.c,w:2,h:2,color:QUEEN,queen:true,hp:+lv.QueenHp||1,max:+lv.QueenHp||1,pend:0,alive:true};
+    G.ants.push(a);for(let y=0;y<2;y++)for(let x=0;x<2;x++)G.cellAnt[q.r+y][q.c+x]=a.id;});
+  rows.forEach((row,r)=>{for(let c=0;c<row.length;c++){const k=row[c];if(k===EMPTY||k===QUEEN||k===' ')continue;
+    const hp=hpAt(lv,r,c),a={id:G.ants.length,r,c,w:1,h:1,color:k,queen:false,hp,max:hp,pend:0,alive:true};G.ants.push(a);G.cellAnt[r][c]=a.id;}});
+  G.totalAnts=G.ants.length;G.totalHp=G.ants.reduce((s,a)=>s+a.hp,0);
+  // slots
+  const locks=String(lv.SlotLocks||'');
+  for(let i=0;i<(+lv.SlotCount||0);i++)G.slots.push({lock:parseInt(locks[i]||'0',10)||0,cannon:null});
+  // board
+  const br=lv.BoardRows||[],be=lv.BoardElements||[];
+  const {trays}=findTrays(be);
+  trays.forEach((t,i)=>{const s=String((lv.TrayBottles||[])[i]||'');G.trays.push({r:t.r,c:t.c,gone:false,bottles:[...s].map(k=>({color:k,broken:false}))});});
+  const trayAt=(r,c)=>G.trays.findIndex(t=>r>=t.r&&r<t.r+2&&c>=t.c&&c<t.c+2);
+  for(let r=0;r<G.BH;r++){const row=[];for(let c=0;c<G.BW;c++){
+    const b=(br[r]||'')[c],e=(be[r]||'')[c];
+    if(b===HOLE||b===undefined){row.push(null);continue;}
+    if(e===TRAY&&trayAt(r,c)>=0)row.push({kind:'tray',tray:trayAt(r,c)});
+    else if(e===CHOCO)row.push({kind:'choco',layers:G.opt.chocoLayers,color:null});
+    else row.push({kind:'cube',color:null});
+  }G.cells.push(row);}
+  fillBoard(G);
+  return G;
+}
+
+/* ---------- ant wall ---------- */
+const bottomRow=a=>a.r+a.h-1;
+export const rowTop=(G,r)=>G.wy-(G.R-r);                 // top edge of wall row r, cells below the view top
+const antCenterY=(G,a)=>rowTop(G,bottomRow(a))+0.5;      // a queen's bottom row sets how low she is
+export const hits=(a,k)=>a.alive&&(a.queen||a.color===k);
+export function available(G,k){let n=0;for(const a of G.ants)if(hits(a,k))n+=a.hp-a.pend;return n;}
+function frontOfCol(G,c){for(let r=G.R-1;r>=0;r--){const id=G.cellAnt[r][c];if(id>=0&&G.ants[id].alive)return id;}return -1;}
+export function isFront(G,a){for(let x=a.c;x<a.c+a.w;x++)if(frontOfCol(G,x)!==a.id)return false;return true;}
+export const inView=(G,a)=>antCenterY(G,a)>=0;
+export function pickTarget(G,k){
+  let best=null;
+  for(const a of G.ants){
+    if(!hits(a,k)||a.hp-a.pend<=0||!inView(G,a)||!isFront(G,a))continue;
+    if(!best||bottomRow(a)>bottomRow(best)||(bottomRow(a)===bottomRow(best)&&a.c<best.c))best=a;
+  }
+  return best;
+}
+export function aliveAnts(G){return G.ants.filter(a=>a.alive);}
+export function lowestBottom(G){let m=-Infinity;for(const a of G.ants)if(a.alive)m=Math.max(m,rowTop(G,bottomRow(a))+1);return m;}
+/* colors of the lowest wall row that still has colored ants; queens have no color of their own */
+export function bottomColors(G){
+  for(let r=G.R-1;r>=0;r--){const s=new Set();
+    for(let c=0;c<G.C;c++){const id=G.cellAnt[r][c];if(id<0)continue;const a=G.ants[id];if(a.alive&&!a.queen)s.add(a.color);}
+    if(s.size)return s;}
+  return new Set();
+}
+function bottomRowShare(G){
+  for(let r=G.R-1;r>=0;r--){const m=new Map();let n=0;
+    for(let c=0;c<G.C;c++){const id=G.cellAnt[r][c];if(id<0)continue;const a=G.ants[id];if(a.alive&&!a.queen){m.set(a.color,(m.get(a.color)||0)+1);n++;}}
+    if(n)return {m,n};}
+  return {m:new Map(),n:0};
+}
+export function viewStats(G){
+  const depth=+G.lv.LoseDepthCells;let vis=0;
+  for(const a of G.ants)if(a.alive){const y=antCenterY(G,a);if(y>=0&&y<=depth)vis++;}
+  const low=lowestBottom(G);
+  return {vis,depthRows:low===-Infinity?0:Math.max(0,low),gapRows:low===-Infinity?99:depth-low,moreAbove:rowTop(G,0)<0};
+}
+
+/* ---------- board colors ---------- */
+const palette=G=>[...String(G.lv.Colors||'')];
+export function spawnWeights(G){
+  const onGrid=new Set();for(const a of G.ants)if(a.alive&&!a.queen)onGrid.add(a.color);
+  const cols=palette(G).filter(k=>onGrid.has(k));
+  for(const k of palette(G))if(cols.length<4&&!cols.includes(k))cols.push(k);   // at least 4 colors on the board
+  if(!cols.length)cols.push('R','B','G','Y');
+  const share=Math.min(1,Math.max(0,+G.lv.RefillFrontShare||0)),w=new Map();
+  cols.forEach(k=>w.set(k,(1-share)/cols.length));
+  const {m,n}=bottomRowShare(G);
+  if(n)for(const [k,v] of m)if(w.has(k))w.set(k,w.get(k)+share*v/n);else w.set(k,share*v/n);
+  else cols.forEach(k=>w.set(k,w.get(k)+share/cols.length));
+  return w;
+}
+function pickColor(G,w,avoid){
+  let tot=0;for(const [k,v] of w)if(!avoid.has(k))tot+=v;
+  if(tot<=0){avoid=new Set();tot=0;for(const [,v] of w)tot+=v;}
+  let x=G.rng()*tot;for(const [k,v] of w){if(avoid.has(k))continue;x-=v;if(x<=0)return k;}
+  return [...w.keys()][0];
+}
+export const colorAt=(G,r,c)=>{const x=G.cells[r]&&G.cells[r][c];return x&&x.kind==='cube'?x.color:null;};
+const swappable=(G,r,c)=>{const x=G.cells[r]&&G.cells[r][c];return !!(x&&x.kind==='cube');};
+function avoidAt(G,r,c){
+  const a=new Set(),k1=colorAt(G,r,c-1);if(k1&&k1===colorAt(G,r,c-2))a.add(k1);
+  const k2=colorAt(G,r-1,c);if(k2&&k2===colorAt(G,r-2,c))a.add(k2);return a;
+}
+function fillBoard(G){
+  const w=spawnWeights(G);
+  for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(!x)continue;
+    if(x.kind==='cube'){x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
+    else if(x.kind==='choco')x.color=pickColor(G,w,new Set());}
+  if(!findMove(G))reshuffle(G);
+  ensureGoodMove(G,false);
+  G.state='fall';G.timer=+G.lv.FallSeconds||0;G.initialFall=true;
+}
+
+/* ---------- matching ---------- */
+export function findGroups(G){
+  const {BW,BH}=G,mark=[...Array(BH)].map(()=>new Array(BW).fill(false));
+  for(let r=0;r<BH;r++){let s=0;for(let c=1;c<=BW;c++){const k=colorAt(G,r,s);if(c<BW&&k&&colorAt(G,r,c)===k)continue;if(c-s>=3&&k)for(let x=s;x<c;x++)mark[r][x]=true;s=c;}}
+  for(let c=0;c<BW;c++){let s=0;for(let r=1;r<=BH;r++){const k=colorAt(G,s,c);if(r<BH&&k&&colorAt(G,r,c)===k)continue;if(r-s>=3&&k)for(let y=s;y<r;y++)mark[y][c]=true;s=r;}}
+  const seen=[...Array(BH)].map(()=>new Array(BW).fill(false)),groups=[];
+  for(let r=0;r<BH;r++)for(let c=0;c<BW;c++){
+    if(!mark[r][c]||seen[r][c])continue;
+    const color=colorAt(G,r,c),cells=[],st=[[r,c]];seen[r][c]=true;
+    while(st.length){const [a,b]=st.pop();cells.push([a,b]);
+      for(const [da,db] of [[1,0],[-1,0],[0,1],[0,-1]]){const na=a+da,nb=b+db;
+        if(na>=0&&na<BH&&nb>=0&&nb<BW&&mark[na][nb]&&!seen[na][nb]&&colorAt(G,na,nb)===color){seen[na][nb]=true;st.push([na,nb]);}}}
+    groups.push({color,cells});
+  }
+  return groups;
+}
+function lineAt(G,r,c){
+  const k=colorAt(G,r,c);if(!k)return false;
+  let h=1;for(let x=c-1;colorAt(G,r,x)===k;x--)h++;for(let x=c+1;colorAt(G,r,x)===k;x++)h++;
+  let v=1;for(let y=r-1;colorAt(G,y,c)===k;y--)v++;for(let y=r+1;colorAt(G,y,c)===k;y++)v++;
+  return h>=3||v>=3;
+}
+function swapCells(G,a,b){const t=G.cells[a[0]][a[1]];G.cells[a[0]][a[1]]=G.cells[b[0]][b[1]];G.cells[b[0]][b[1]]=t;}
+export function allSwaps(G){
+  const out=[];
+  for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){if(!swappable(G,r,c))continue;
+    if(swappable(G,r,c+1))out.push([[r,c],[r,c+1]]);if(swappable(G,r+1,c))out.push([[r,c],[r+1,c]]);}
+  return out;
+}
+export function validMoves(G){
+  return allSwaps(G).filter(([a,b])=>{swapCells(G,a,b);const ok=lineAt(G,a[0],a[1])||lineAt(G,b[0],b[1]);swapCells(G,a,b);return ok;});
+}
+export function findMove(G){
+  for(const [a,b] of allSwaps(G)){swapCells(G,a,b);const ok=lineAt(G,a[0],a[1])||lineAt(G,b[0],b[1]);swapCells(G,a,b);if(ok)return [a,b];}
+  return null;
+}
+export function hasGoodMove(G,cols){
+  for(const [a,b] of allSwaps(G)){swapCells(G,a,b);
+    const ok=(lineAt(G,a[0],a[1])&&cols.has(colorAt(G,a[0],a[1])))||(lineAt(G,b[0],b[1])&&cols.has(colorAt(G,b[0],b[1])));
+    swapCells(G,a,b);if(ok)return true;}
+  return false;
+}
+/* recolor a few allowed cubes so one swap makes a line of 3 in one of `cols`, with no match on the board right away */
+function plantMove(G,cols,allowed,mustKeep){
+  const ks=[...cols];if(!ks.length)return null;
+  const pool=[...spawnWeights(G).keys()];
+  const ok=(r,c)=>swappable(G,r,c);
+  for(let tries=0;tries<400;tries++){
+    const k=ks[Math.floor(G.rng()*ks.length)],horiz=G.rng()<.5;
+    const r0=Math.floor(G.rng()*G.BH),c0=Math.floor(G.rng()*G.BW);
+    const line=horiz?[[r0,c0],[r0,c0+1],[r0,c0+2]]:[[r0,c0],[r0+1,c0],[r0+2,c0]];
+    if(line.some(([r,c])=>!ok(r,c)))continue;
+    const gi=Math.floor(G.rng()*3),[gr,gc]=line[gi];
+    const nbs=horiz?[[gr-1,gc],[gr+1,gc]]:[[gr,gc-1],[gr,gc+1]];
+    if(gi===0)nbs.push(horiz?[gr,gc-1]:[gr-1,gc]);if(gi===2)nbs.push(horiz?[gr,gc+1]:[gr+1,gc]);
+    const [yr,yc]=nbs[Math.floor(G.rng()*nbs.length)];
+    if(!ok(yr,yc))continue;
+    const cells=[...line.filter((_,i)=>i!==gi),[yr,yc]];
+    const gapK=colorAt(G,gr,gc)===k;
+    const touched=[...cells.filter(([r,c])=>colorAt(G,r,c)!==k),...(gapK?[[gr,gc]]:[])];
+    if(touched.some(([r,c])=>!allowed(r,c)))continue;
+    const saved=[...cells,[gr,gc]].map(([r,c])=>[r,c,colorAt(G,r,c)]);
+    cells.forEach(([r,c])=>G.cells[r][c].color=k);
+    if(gapK){const o=pool.filter(x=>x!==k);G.cells[gr][gc].color=o[Math.floor(G.rng()*o.length)]||k;}
+    if(findGroups(G).length===0&&hasGoodMove(G,cols)&&(!mustKeep||mustKeep.every(x=>hasGoodMove(G,new Set([x])))))return touched;
+    saved.forEach(([r,c,v])=>G.cells[r][c].color=v);
+  }
+  return null;
+}
+function ensureGoodMove(G,visible){
+  const cols=bottomColors(G);G.goodCols=[...cols].sort().join();
+  if(!cols.size||hasGoodMove(G,cols))return;
+  const done=plantMove(G,cols,()=>true);
+  if(done&&visible){done.forEach(([r,c])=>{G.cells[r][c].glow=1;});G.events.push({type:'glow'});}
+}
+function reshuffle(G){
+  const cubes=[];for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c))cubes.push(G.cells[r][c]);
+  for(let tries=0;tries<80;tries++){
+    for(let i=cubes.length-1;i>0;i--){const j=Math.floor(G.rng()*(i+1));const x=cubes[i].color;cubes[i].color=cubes[j].color;cubes[j].color=x;}
+    if(findGroups(G).length===0&&findMove(G))return true;
+  }
+  for(let tries=0;tries<40;tries++){
+    const w=spawnWeights(G);
+    for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c))G.cells[r][c].color=pickColor(G,w,avoidAt(G,r,c));
+    if(findGroups(G).length===0&&findMove(G))return true;
+  }
+  return false;   // board too small or too few colors for a move
+}
+
+/* ---------- player actions ---------- */
+export function canSwap(G,a,b){
+  if(G.over||G.state!=='idle')return false;
+  if(Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])!==1)return false;
+  return swappable(G,a[0],a[1])&&swappable(G,b[0],b[1]);
+}
+export function trySwap(G,a,b){
+  if(!canSwap(G,a,b))return false;
+  G.started=true;G.hint=null;G.stats.swaps++;
+  swapCells(G,a,b);G.swapPair=[a,b];G.state='swap';G.timer=+G.lv.SwapSeconds||0;
+  return true;
+}
+
+/* ---------- match resolution ---------- */
+function startHold(G,groups){G.holdGroups=groups;G.state='hold';G.timer=+G.lv.MatchHold||0;
+  groups.forEach(g=>g.cells.forEach(([r,c])=>{G.cells[r][c].dying=true;}));}
+function neighbors(G,cells){
+  const out=new Set();
+  for(const [r,c] of cells)for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){const nr=r+dr,nc=c+dc;
+    if(nr>=0&&nr<G.BH&&nc>=0&&nc<G.BW)out.add(nr*1000+nc);}
+  return [...out].map(v=>[Math.floor(v/1000),v%1000]);
+}
+function clearGroups(G){
+  const groups=G.holdGroups||[];G.holdGroups=null;
+  for(const g of groups){
+    const n=g.cells.length;let bonus=0;const hitTrays=new Set(),hitChoco=[];
+    for(const [r,c] of neighbors(G,g.cells)){const x=G.cells[r][c];if(!x)continue;
+      if(x.kind==='choco'&&!hitChoco.includes(x))hitChoco.push(x);
+      if(x.kind==='tray')hitTrays.add(x.tray);}
+    hitChoco.forEach(x=>{x.layers--;if(x.layers<=0){x.kind='cube';delete x.layers;x.glow=1;G.events.push({type:'choco-open'});}});
+    for(const ti of hitTrays){const t=G.trays[ti];if(t.gone)continue;
+      const b=t.bottles.find(b=>!b.broken&&b.color===g.color);
+      if(b){b.broken=true;bonus+=BOTTLE_BONUS;G.events.push({type:'bottle',tray:ti,color:g.color});
+        if(t.bottles.every(b=>b.broken)){t.gone=true;
+          for(let y=0;y<2;y++)for(let x=0;x<2;x++)G.cells[t.r+y][t.c+x]={kind:'empty'};}}}
+    let sr=0,sc=0;g.cells.forEach(([r,c])=>{sr+=r;sc+=c;G.cells[r][c]={kind:'empty'};});
+    G.stats.matches++;
+    const ammo=ammoFor(n)+bonus,at={r:sr/n,c:sc/n};
+    if(available(G,g.color)<=0){G.events.push({type:'notarget',color:g.color,at});continue;}
+    G.flights.push({color:g.color,ammo,n,t:+G.lv.MatchFlight||0,dur:+G.lv.MatchFlight||0,at});
+    G.events.push({type:'match',color:g.color,n,ammo,bonus,at,praise:praise(n)});
+  }
+  gravity(G);
+  G.state='fall';G.timer=+G.lv.FallSeconds||0;
+}
+/* Cubes fall inside each column, through missing cells (#). Chocolate and trays stay put and nothing falls through them,
+   so the cells under one refill from right under it. */
+function gravity(G){
+  const w=spawnWeights(G);
+  for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(x&&x.kind==='cube'){x.from=r;}}
+  for(let c=0;c<G.BW;c++){
+    let seg=[];const segs=[];
+    for(let r=0;r<G.BH;r++){const x=G.cells[r][c];if(!x)continue;
+      if(x.kind==='choco'||x.kind==='tray'){if(seg.length)segs.push(seg);seg=[];continue;}
+      seg.push(r);}
+    if(seg.length)segs.push(seg);
+    for(const s of segs){
+      const keep=[];for(let i=s.length-1;i>=0;i--){const x=G.cells[s[i]][c];if(x.kind==='cube')keep.push(x);}
+      for(let i=s.length-1,j=0;i>=0;i--,j++){const r=s[i];
+        if(j<keep.length){G.cells[r][c]=keep[j];}
+        else{const k=j-keep.length;G.cells[r][c]={kind:'cube',color:pickColor(G,w,new Set()),from:s[0]-1-k,fresh:true};}}
+    }
+  }
+  // GDD 1.2 Help: after each match, color the new cubes so each bottom-row color gets a swap that makes a line of 3
+  const cols=bottomColors(G);
+  if(cols.size&&findGroups(G).length===0){
+    const order=[...cols].sort(()=>G.rng()-.5),ok=order.filter(k=>hasGoodMove(G,new Set([k])));
+    for(const k of order){if(ok.includes(k))continue;
+      if(plantMove(G,new Set([k]),(r,c)=>!!G.cells[r][c].fresh,ok))ok.push(k);}
+  }
+  for(const row of G.cells)for(const x of row)if(x)delete x.fresh;
+}
+
+/* ---------- cannons ---------- */
+function placeCannon(G,f){
+  if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
+  const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
+  if(i<0){G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
+  G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
+  // GDD 1.4 Locked Slot: each cannon that enters a slot counts every locked slot down by 1
+  G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
+}
+function mergeTriples(G){
+  const by=new Map();
+  G.slots.forEach((s,i)=>{const k=s.cannon;if(k&&k.ammo>0){if(!by.has(k.color))by.set(k.color,[]);by.get(k.color).push(i);}});
+  for(const [color,idx] of by){
+    if(idx.length<3)continue;
+    const [a,b,c]=idx,keep=G.slots[a].cannon;
+    keep.ammo+=G.slots[b].cannon.ammo+G.slots[c].cannon.ammo;keep.pop=1;
+    G.slots[b].cannon=null;G.slots[c].cannon=null;G.stats.merges++;
+    G.events.push({type:'merge',slot:a,color,from:[b,c]});
+  }
+}
+function fireShot(G,a,color,origin,delay){
+  a.pend++;G.stats.shots++;
+  G.shots.push({ant:a.id,color,t:(+G.lv.ShotFlight||0)+(delay||0),dur:+G.lv.ShotFlight||0,delay:delay||0,origin});
+}
+function updateCannons(G,dt){
+  mergeTriples(G);
+  const fire=+G.lv.FireInterval||0.15;
+  G.slots.forEach((s,i)=>{const k=s.cannon;if(!k)return;
+    k.pop=Math.max(0,(k.pop||0)-dt*3.5);
+    if(available(G,k.color)<=0){G.stats.lostAmmo+=k.ammo;s.cannon=null;return;}   // its color is gone from the wall
+    k.cd-=dt;
+    if(k.cd<=0){const a=pickTarget(G,k.color);
+      if(a){fireShot(G,a,k.color,{slot:i});k.ammo--;k.cd+=fire;if(k.cd<0)k.cd=0;k.waiting=false;}
+      else{k.cd=0;k.waiting=true;}}
+    if(k.ammo<=0)s.cannon=null;   // leaves at 0 ammo
+  });
+}
+function updateShots(G,dt){
+  for(let i=G.shots.length-1;i>=0;i--){const s=G.shots[i];s.t-=dt;
+    if(s.t<=0){const a=G.ants[s.ant];a.pend--;a.hp--;
+      if(a.hp<=0&&a.alive){a.alive=false;G.events.push({type:'kill',ant:a.id});}
+      else if(!a.queen&&a.hp===1&&a.max>1)G.events.push({type:'armor',ant:a.id});
+      G.shots.splice(i,1);}}
+}
+/* Hand and Bomb shots: any ant of the color, front or not, in view or not, nearest first */
+function volley(G,color,ammo,originX,origin){
+  const list=G.ants.filter(a=>hits(a,color)&&a.hp-a.pend>0)
+    .sort((p,q)=>bottomRow(q)-bottomRow(p)||Math.abs(p.c+p.w/2-originX)-Math.abs(q.c+q.w/2-originX));
+  let n=0;
+  for(const a of list){while(ammo>0&&a.hp-a.pend>0){fireShot(G,a,color,origin,n*0.04);ammo--;n++;}if(!ammo)break;}
+  if(ammo>0)G.stats.lostAmmo+=ammo;
+  return n;
+}
+export function canBooster(G,kind){
+  if(G.over)return false;
+  if(kind==='hand')return G.slots.some(s=>s.cannon&&s.cannon.ammo>0);
+  if(kind==='shuffle')return G.state==='idle';
+  if(kind==='bomb')return aliveAnts(G).length>0;
+  return false;
+}
+export function useBooster(G,kind){
+  if(!canBooster(G,kind))return false;
+  G.started=true;G.stats.boosters[kind]++;
+  if(kind==='hand'){
+    let best=-1;G.slots.forEach((s,i)=>{if(s.cannon&&s.cannon.ammo>0&&(best<0||s.cannon.ammo>G.slots[best].cannon.ammo))best=i;});
+    const k=G.slots[best].cannon,x=(best+0.5)/G.slots.length*G.C;
+    volley(G,k.color,k.ammo,x,{slot:best});G.slots[best].cannon=null;
+    G.events.push({type:'hand',slot:best,color:k.color});
+  }else if(kind==='bomb'){
+    const cols=[];
+    for(let r=G.R-1;r>=0&&cols.length<3;r--)for(let c=0;c<G.C&&cols.length<3;c++){const id=G.cellAnt[r][c];if(id<0)continue;const a=G.ants[id];
+      if(a.alive&&!a.queen&&!cols.includes(a.color))cols.push(a.color);}
+    if(!cols.length){const q=aliveAnts(G)[0];if(q)cols.push(palette(G)[0]||'R');}
+    cols.forEach((k,i)=>volley(G,k,BOMB_AMMO,(i+0.5)/cols.length*G.C,{bomb:i,of:cols.length}));
+    G.events.push({type:'bomb',colors:cols});
+  }else if(kind==='shuffle'){
+    // new board: normal cubes only (chocolate and trays stay), no ready match, a swap for each bottom-row color
+    const w=spawnWeights(G),cols=bottomColors(G);
+    for(let tries=0;tries<30;tries++){
+      for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c)){const x=G.cells[r][c];x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
+      const ok=[];for(const k of cols){if(hasGoodMove(G,new Set([k]))){ok.push(k);continue;}if(plantMove(G,new Set([k]),()=>true,ok))ok.push(k);}
+      if(findGroups(G).length===0&&findMove(G)&&ok.length===cols.size)break;
+    }
+    if(findGroups(G).length||!findMove(G))reshuffle(G);
+    G.goodCols=[...cols].sort().join();
+    G.state='fall';G.timer=+G.lv.FallSeconds||0;
+    G.events.push({type:'shuffle'});
+  }
+  return true;
+}
+
+/* ---------- main step ---------- */
+export function step(G,dt){
+  if(G.over)return;
+  G.t+=dt;
+  for(const row of G.cells)for(const x of row)if(x&&x.glow)x.glow=Math.max(0,x.glow-dt*1.5);
+  // board
+  if(G.state!=='idle'){
+    G.timer-=dt;
+    if(G.timer<=0){
+      if(G.state==='swap'){
+        const g=findGroups(G);
+        if(g.length)startHold(G,g);
+        else{const [a,b]=G.swapPair;swapCells(G,a,b);G.state='swapback';G.timer=+G.lv.SwapSeconds||0;}
+      }else if(G.state==='swapback')G.state='idle';
+      else if(G.state==='hold')clearGroups(G);
+      else if(G.state==='fall'){
+        for(const row of G.cells)for(const x of row)if(x)delete x.from;
+        const g=findGroups(G);
+        if(g.length&&!G.initialFall)startHold(G,g);
+        else{G.initialFall=false;
+          if(!findMove(G)){reshuffle(G);G.stats.reshuffles++;G.events.push({type:'reshuffle'});}
+          ensureGoodMove(G,true);G.state='idle';}
+      }
+    }
+  }
+  // match flights land in slots
+  for(let i=G.flights.length-1;i>=0;i--){const f=G.flights[i];f.t-=dt;if(f.t<=0){G.flights.splice(i,1);placeCannon(G,f);}}
+  updateCannons(G,dt);updateShots(G,dt);
+  if(G.state==='idle'&&[...bottomColors(G)].sort().join()!==G.goodCols)ensureGoodMove(G,true);
+  // the wall marches down from the first swap
+  if(G.started){
+    const v=viewStats(G);
+    G.boost=(v.moreAbove&&(v.vis<+G.lv.WallBoostMinAnts||v.depthRows<+G.lv.WallBoostMinRows)&&v.gapRows>+G.lv.WallBoostStopRows)?(+G.lv.WallBoostFactor||1):1;
+    G.wy+=(+G.lv.WallDescentPerSecond||0)*G.boost*dt;
+  }
+  if(!G.ants.some(a=>a.alive)&&!G.shots.length){G.over='win';G.events.push({type:'win'});}
+  else if(lowestBottom(G)>=+G.lv.LoseDepthCells){G.over='lose';G.events.push({type:'lose'});}
+}
+
+/* ---------- bot ---------- */
+/* Greedy: picks the swap whose matches feed the most useful ammo now. Useful = ammo its color can still spend,
+   minus what cannons of that color already hold, and only if a slot can take the cannon. */
+export function botMove(G){
+  const moves=validMoves(G);if(!moves.length)return null;
+  const held=new Map();
+  G.slots.forEach(s=>{if(s.cannon)held.set(s.cannon.color,(held.get(s.cannon.color)||0)+s.cannon.ammo);});
+  G.flights.forEach(f=>held.set(f.color,(held.get(f.color)||0)+f.ammo));
+  const free=G.slots.filter(s=>s.lock===0&&!s.cannon).length-G.flights.length;
+  const sameIn=k=>G.slots.filter(s=>s.cannon&&s.cannon.color===k).length;
+  let best=null,bs=-Infinity;
+  for(const [a,b] of moves){
+    swapCells(G,a,b);const groups=findGroups(G);
+    let s=0;
+    for(const g of groups){
+      const n=g.cells.length,ammo=ammoFor(n),need=available(G,g.color)-(held.get(g.color)||0);
+      let bonus=0;for(const [r,c] of neighbors(G,g.cells)){const x=G.cells[r][c];if(!x)continue;
+        if(x.kind==='choco')bonus+=1.5;
+        if(x.kind==='tray'){const t=G.trays[x.tray];if(t.bottles.some(q=>!q.broken&&q.color===g.color))bonus+=4;}}
+      const room=free>0||sameIn(g.color)>=2;
+      const front=pickTarget(G,g.color)?3:0;
+      s+=(room&&need>0?Math.min(ammo+bonus,need)+front:-2)+bonus*0.5;
+    }
+    // lower matches shake more cubes loose
+    s+=Math.max(a[0],b[0])*0.05+G.rng()*0.3;
+    swapCells(G,a,b);
+    if(s>bs){bs=s;best=[a,b];}
+  }
+  // nothing useful (slots full or no color needs ammo): wait instead of wasting a cannon
+  return bs<0?null:best;
+}
+export function simulate(lv,opt={}){
+  const G=newGame(lv,{seed:opt.seed,chocoLayers:opt.chocoLayers});
+  const dt=opt.dt||1/30,maxT=opt.maxTime||900,think=opt.think==null?0.5:opt.think;
+  let wait=think;
+  while(!G.over&&G.t<maxT){
+    if(G.state==='idle'){wait-=dt;if(wait<=0){const m=botMove(G);if(m)trySwap(G,m[0],m[1]);wait=think;}}
+    step(G,dt);G.events.length=0;
+  }
+  const left=G.ants.filter(a=>a.alive).length;
+  return {result:G.over||'timeout',time:G.t,left,total:G.totalAnts,cleared:1-left/(G.totalAnts||1),stats:G.stats};
+}
