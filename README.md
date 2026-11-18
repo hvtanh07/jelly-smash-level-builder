@@ -1,6 +1,6 @@
 # Jelly Smash Level Builder
 
-A level builder for Jelly Smash, built on the rules in the [Jelly Smash GDD](https://hvtanh07.github.io/gdd-jelly-smash/). The first 10 levels from the Level Config sheet are preloaded in the list on the left.
+A level builder for Jelly Smash, built on the rules in the [Jelly Smash GDD](https://hvtanh07.github.io/gdd-jelly-smash/). Levels L1–L20 are preloaded in the list on the left (L1–L10 come from the Level Config sheet; L11–L20 are new designs, not in the sheet yet).
 
 ## Run it
 
@@ -66,5 +66,5 @@ From the GDD, sections 1.2, 1.4 and 1.5:
 - `src/format.js`: the level format, reading, writing and checks.
 - `src/engine.js`: game rules, boosters and the bot.
 - `src/render.js`: draws the play test.
-- `src/data/levels.json`: the built-in levels, same as the Level Config sheet (L1–L10).
+- `src/data/levels.json`: the built-in levels (L1–L20).
 - `tests/`: Vitest tests.
