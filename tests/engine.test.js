@@ -55,6 +55,21 @@ describe('rules',()=>{
     expect(G.slots.filter(s=>s.cannon).length).toBe(2);
     expect(G.slots[0].cannon.ammo).toBe(12);
   });
+  it('conveyor: a new cannon enters on the left and pushes the row right',()=>{
+    const G=newGame(mini({SlotCount:3,SlotLocks:'000'}),{seed:1,slotMode:'conveyor'});settle(G);G.wy=-5;
+    land(G,'R',3);step(G,1/60);land(G,'B',4);step(G,1/60);
+    expect(G.slots.map(s=>s.cannon&&s.cannon.color)).toEqual(['B','R',null]);
+    land(G,'G',5);step(G,1/60);land(G,'R',6);step(G,1/60);
+    expect(G.slots.map(s=>s.cannon&&s.cannon.color)).toEqual(['R','G','B']);
+    expect(G.stats.lost).toBe(1);
+  });
+  it('conveyor: a third cannon of a color merges instead of pushing',()=>{
+    const G=newGame(mini({SlotCount:3,SlotLocks:'000'}),{seed:1,slotMode:'conveyor'});settle(G);G.wy=-5;
+    land(G,'R',3);step(G,1/60);land(G,'B',3);step(G,1/60);land(G,'R',4);step(G,1/60);land(G,'R',5);step(G,1/60);
+    expect(G.stats.lost).toBe(0);
+    expect(G.slots.filter(s=>s.cannon).length).toBe(2);
+    expect(G.slots.find(s=>s.cannon&&s.cannon.color==='R').cannon.ammo).toBe(12);
+  });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);
     land(G,'R',3);run(G,2);
