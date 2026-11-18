@@ -228,7 +228,7 @@
     "Name": "L4",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "RRBBBBBBRR",
       "RRBBBBBBRR",
@@ -307,7 +307,7 @@
     "Name": "L5",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "BBBRRRRBBB",
       "BBBRRRRBBB",
@@ -392,7 +392,7 @@
     "Name": "L6",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "YYYYYYYYYY",
       "YYYYYYYYYY",
@@ -477,7 +477,7 @@
     "Name": "L7",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "OOOORRRRRR",
       "OOOORRRRRR",
@@ -554,7 +554,7 @@
     "Name": "L8",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "RRRRRRRRRR",
       "RRRRRRRRRR",
@@ -635,7 +635,7 @@
     "Name": "L9",
     "Difficulty": 0,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "BBRRRRRRBB",
       "BBRRRRRRBB",
@@ -720,7 +720,7 @@
     "Name": "L10",
     "Difficulty": 1,
     "Colors": "RBGYO",
-    "SlotCount": 5,
+    "SlotCount": 4,
     "WallRows": [
       "GGRRRRRRRRGG",
       "GGRRRRRRRRGG",
