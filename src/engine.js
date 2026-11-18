@@ -86,15 +86,22 @@ export function viewStats(G){
 
 /* ---------- board colors ---------- */
 const palette=G=>[...String(G.lv.Colors||'')];
+/* RefillColors (level field): the only colors new cubes may have; empty = no limit */
+export const refillLimit=G=>{const s=String(G.lv.RefillColors||'');return s?new Set(s):null;};
+const allowedCols=(G,cols)=>{const lim=refillLimit(G);return lim?new Set([...cols].filter(k=>lim.has(k))):cols;};
 export function spawnWeights(G){
+  const lim=refillLimit(G);
   const onGrid=new Set();for(const a of G.ants)if(a.alive&&!a.queen)onGrid.add(a.color);
-  const cols=palette(G).filter(k=>onGrid.has(k));
-  for(const k of palette(G))if(cols.length<4&&!cols.includes(k))cols.push(k);   // at least 4 colors on the board
+  let cols;
+  if(lim)cols=[...lim];
+  else{cols=palette(G).filter(k=>onGrid.has(k));
+    for(const k of palette(G))if(cols.length<4&&!cols.includes(k))cols.push(k);}   // at least 4 colors on the board
   if(!cols.length)cols.push('R','B','G','Y');
   const share=Math.min(1,Math.max(0,+G.lv.RefillFrontShare||0)),w=new Map();
   cols.forEach(k=>w.set(k,(1-share)/cols.length));
   const {m,n}=bottomRowShare(G);
-  if(n)for(const [k,v] of m)if(w.has(k))w.set(k,w.get(k)+share*v/n);else w.set(k,share*v/n);
+  const hit=n?[...m].filter(([k])=>!lim||lim.has(k)):[],hn=hit.reduce((s,[,v])=>s+v,0);
+  if(hn)for(const [k,v] of hit)if(w.has(k))w.set(k,w.get(k)+share*v/hn);else w.set(k,share*v/hn);
   else cols.forEach(k=>w.set(k,w.get(k)+share/cols.length));
   return w;
 }
@@ -193,7 +200,7 @@ function plantMove(G,cols,allowed,mustKeep){
   return null;
 }
 function ensureGoodMove(G,visible){
-  const cols=bottomColors(G);G.goodCols=[...cols].sort().join();
+  const cols=allowedCols(G,bottomColors(G));G.goodCols=[...cols].sort().join();
   if(!cols.size||hasGoodMove(G,cols))return;
   const done=plantMove(G,cols,(r,c)=>!G.cells[r][c].preset);
   if(done&&visible){done.forEach(([r,c])=>{G.cells[r][c].glow=1;});G.events.push({type:'glow'});}
@@ -283,7 +290,7 @@ function gravity(G){
     }
   }
   // GDD 1.2 Help: after each match, color the new cubes so each bottom-row color gets a swap that makes a line of 3
-  const cols=bottomColors(G);
+  const cols=allowedCols(G,bottomColors(G));
   if(cols.size&&findGroups(G).length===0){
     const order=[...cols].sort(()=>G.rng()-.5),ok=order.filter(k=>hasGoodMove(G,new Set([k])));
     for(const k of order){if(ok.includes(k))continue;
@@ -373,7 +380,7 @@ export function useBooster(G,kind){
     G.events.push({type:'bomb',colors:cols});
   }else if(kind==='shuffle'){
     // new board: normal cubes only (chocolate and trays stay), no ready match, a swap for each bottom-row color
-    const w=spawnWeights(G),cols=bottomColors(G);
+    const w=spawnWeights(G),cols=allowedCols(G,bottomColors(G));
     for(let tries=0;tries<30;tries++){
       for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c)){const x=G.cells[r][c];x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
       const ok=[];for(const k of cols){if(hasGoodMove(G,new Set([k]))){ok.push(k);continue;}if(plantMove(G,new Set([k]),()=>true,ok))ok.push(k);}

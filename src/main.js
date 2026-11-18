@@ -297,6 +297,9 @@ function renderPane(){
       <h3>Colors <code>Colors</code></h3>
       <div class="swatches" id="fColors">${PALETTE.map(c=>`<button type="button" class="sw big" data-col="${c.k}" style="background:${c.hex}" aria-pressed="${String(lv.Colors).includes(c.k)}" title="${c.name}${c.unconfirmed?' (letter not confirmed in the game yet)':''}">${c.k}</button>`).join('')}</div>
       <p class="hint">Order: <code>${esc(lv.Colors)}</code>. R B G O Y come from the game file; P, K, C are guesses until the game confirms them.</p>
+      <h3>Refill colors <code>RefillColors</code></h3>
+      <div class="swatches" id="fRefill">${[...String(lv.Colors)].map(k=>{const c=PALETTE.find(p=>p.k===k)||{hex:'#888',name:k};return `<button type="button" class="sw" data-rc="${k}" style="background:${c.hex}" aria-pressed="${String(lv.RefillColors||'').includes(k)}" title="${c.name}">${k}</button>`;}).join('')}</div>
+      <p class="hint">${lv.RefillColors?`New cubes only get <code>${esc(lv.RefillColors)}</code>; the Help rule only plants these colors.`:'None picked: new cubes get any color still on the wall.'}</p>
       <h3>Cannon slots</h3>
       <div class="fields">${fld('Slots','SlotCount',num('fSlots',lv.SlotCount,'min="1" max="9"'))}</div>
       <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. You can also click a slot in the design view (Shift-click counts down).</p>
@@ -306,6 +309,8 @@ function renderPane(){
     $('#fName').addEventListener('change',e=>{const v=e.target.value.trim()||lv.Name;lv.Name=v;commit();$('#lvTitle').textContent=v;});
     $('#fDiff').addEventListener('change',e=>{lv.Difficulty=+e.target.value;commit();});
     $('#fQueen').addEventListener('change',e=>{lv.QueenHp=Math.max(1,+e.target.value||1);commit();renderEdit();});
+    $('#fRefill').addEventListener('click',e=>{const b=e.target.closest('[data-rc]');if(!b)return;const k=b.dataset.rc,cur=String(lv.RefillColors||'');
+      const nx=cur.includes(k)?cur.replace(k,''):[...lv.Colors].filter(x=>x===k||cur.includes(x)).join('');if(nx)lv.RefillColors=nx;else delete lv.RefillColors;commit();renderAll();});
     $('#fColors').addEventListener('click',e=>{const b=e.target.closest('[data-col]');if(!b)return;const k=b.dataset.col;
       lv.Colors=lv.Colors.includes(k)?lv.Colors.replace(k,''):lv.Colors+k;commit();syncTools();renderAll();});
     $('#fSlots').addEventListener('change',e=>{const n=Math.max(1,Math.min(9,+e.target.value||1));lv.SlotCount=n;lv.SlotLocks=String(lv.SlotLocks||'').padEnd(n,'0').slice(0,n);commit();renderAll();});
