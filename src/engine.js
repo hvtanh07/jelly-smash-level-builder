@@ -1,7 +1,7 @@
 /* Jelly Smash rules for the play test, the bot and the tests. No DOM here.
    Rules follow the GDD (sections 1.1, 1.2, 1.4, 1.5) and the timings in the level file.
    Positions on the ant wall are in cells, measured down from the top of the ant view. */
-import {findQueens,findTrays,hpAt,QUEEN,EMPTY,HOLE,CHOCO,TRAY} from './format.js';
+import {findQueens,findTrays,hpAt,isChoco,chocoHp,QUEEN,EMPTY,HOLE,TRAY} from './format.js';
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 export const ammoFor=n=>2*n-3;            // GDD 1.2: ammo = 2n − 3
@@ -36,9 +36,10 @@ export function newGame(lv,opt={}){
   for(let r=0;r<G.BH;r++){const row=[];for(let c=0;c<G.BW;c++){
     const b=(br[r]||'')[c],e=(be[r]||'')[c];
     if(b===HOLE||b===undefined){row.push(null);continue;}
+    const preset=/^[A-Z]$/.test(b)?b:null;   // BoardRows color letter: the start color of that cell's cube
     if(e===TRAY&&trayAt(r,c)>=0)row.push({kind:'tray',tray:trayAt(r,c)});
-    else if(e===CHOCO)row.push({kind:'choco',layers:G.opt.chocoLayers,color:null});
-    else row.push({kind:'cube',color:null});
+    else if(isChoco(e))row.push({kind:'choco',layers:chocoHp(e,G.opt.chocoLayers),max:chocoHp(e,G.opt.chocoLayers),color:preset,preset:!!preset});
+    else row.push({kind:'cube',color:preset,preset:!!preset});
   }G.cells.push(row);}
   fillBoard(G);
   return G;
@@ -112,8 +113,8 @@ function avoidAt(G,r,c){
 function fillBoard(G){
   const w=spawnWeights(G);
   for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(!x)continue;
-    if(x.kind==='cube'){x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
-    else if(x.kind==='choco')x.color=pickColor(G,w,new Set());}
+    if(x.kind==='cube'){if(!x.preset)x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
+    else if(x.kind==='choco'&&!x.preset)x.color=pickColor(G,w,new Set());}
   if(!findMove(G))reshuffle(G);
   ensureGoodMove(G,false);
   G.state='fall';G.timer=+G.lv.FallSeconds||0;G.initialFall=true;
@@ -191,18 +192,18 @@ function plantMove(G,cols,allowed,mustKeep){
 function ensureGoodMove(G,visible){
   const cols=bottomColors(G);G.goodCols=[...cols].sort().join();
   if(!cols.size||hasGoodMove(G,cols))return;
-  const done=plantMove(G,cols,()=>true);
+  const done=plantMove(G,cols,(r,c)=>!G.cells[r][c].preset);
   if(done&&visible){done.forEach(([r,c])=>{G.cells[r][c].glow=1;});G.events.push({type:'glow'});}
 }
 function reshuffle(G){
-  const cubes=[];for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c))cubes.push(G.cells[r][c]);
+  const cubes=[];for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c)&&!G.cells[r][c].preset)cubes.push(G.cells[r][c]);
   for(let tries=0;tries<80;tries++){
     for(let i=cubes.length-1;i>0;i--){const j=Math.floor(G.rng()*(i+1));const x=cubes[i].color;cubes[i].color=cubes[j].color;cubes[j].color=x;}
     if(findGroups(G).length===0&&findMove(G))return true;
   }
   for(let tries=0;tries<40;tries++){
     const w=spawnWeights(G);
-    for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c))G.cells[r][c].color=pickColor(G,w,avoidAt(G,r,c));
+    for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++)if(swappable(G,r,c)&&!G.cells[r][c].preset)G.cells[r][c].color=pickColor(G,w,avoidAt(G,r,c));
     if(findGroups(G).length===0&&findMove(G))return true;
   }
   return false;   // board too small or too few colors for a move
@@ -216,6 +217,7 @@ export function canSwap(G,a,b){
 }
 export function trySwap(G,a,b){
   if(!canSwap(G,a,b))return false;
+  if(!G.started)for(const row of G.cells)for(const x of row)if(x&&x.kind==='cube')x.preset=false;
   G.started=true;G.hint=null;G.stats.swaps++;
   swapCells(G,a,b);G.swapPair=[a,b];G.state='swap';G.timer=+G.lv.SwapSeconds||0;
   return true;
@@ -237,7 +239,7 @@ function clearGroups(G){
     for(const [r,c] of neighbors(G,g.cells)){const x=G.cells[r][c];if(!x)continue;
       if(x.kind==='choco'&&!hitChoco.includes(x))hitChoco.push(x);
       if(x.kind==='tray')hitTrays.add(x.tray);}
-    hitChoco.forEach(x=>{x.layers--;if(x.layers<=0){x.kind='cube';delete x.layers;x.glow=1;G.events.push({type:'choco-open'});}});
+    hitChoco.forEach(x=>{x.layers--;if(x.layers<=0){x.kind='cube';delete x.layers;delete x.preset;x.glow=1;G.events.push({type:'choco-open'});}});
     for(const ti of hitTrays){const t=G.trays[ti];if(t.gone)continue;
       const b=t.bottles.find(b=>!b.broken&&b.color===g.color);
       if(b){b.broken=true;bonus+=BOTTLE_BONUS;G.events.push({type:'bottle',tray:ti,color:g.color});
