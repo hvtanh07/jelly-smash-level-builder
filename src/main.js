@@ -271,7 +271,7 @@ function syncTools(){
   else if(tool==='tray')h=`<span class="hint">Click to place a 2×2 tray, click a tray to remove it. Bottle colors: Board tab.</span>`;
   else if(tool==='cell')h=`<span class="hint">Click or drag to add or remove board cells.</span>`;
   else if(tool==='choco')h=`<span class="hint gl">HP</span>`+['X','1','2','3','4','5','6','7','8','9'].map(n=>`<button type="button" class="tb hpb" data-choco="${n}" aria-pressed="${n===chocoBrush}" title="${n==='X'?`X: default HP (${prefs.chocoLayers}, set in the Board tab)`:`Chocolate with ${n} HP`}">${n}</button>`).join('');
-  else if(tool==='bcolor')h=`<span class="hint gl">Start color</span>`+cols.map((k,i)=>`<button type="button" class="sw" data-brush="${k}" style="background:${colorHex(k)}" aria-pressed="${k===brushColor}" title="${colorName(k)}">${k}</button>`).join('')+`<span class="hint">Click again to make it random.</span>`;
+  else if(tool==='bcolor')h=`<span class="hint gl">Fixed jelly</span>`+cols.map((k,i)=>`<button type="button" class="sw" data-brush="${k}" style="background:${colorHex(k)}" aria-pressed="${k===brushColor}" title="${colorName(k)}">${k}</button>`).join('')+`<span class="hint">Click a fixed jelly again to make it random.</span>`;
   $('#brush').innerHTML=h;
 }
 $$('[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
@@ -302,7 +302,7 @@ function renderPane(){
       <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. You can also click a slot in the design view (Shift-click counts down).</p>
       <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="9" data-lock="${i}" value="${+locks[i]||0}"></label>`).join('')}</div>
       <h3>Elements in this level</h3>${elementSummary(lv)}
-      <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T K</kbd><span>Board tools: Cell, Chocolate, Tray, Start color</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
+      <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T K</kbd><span>Board tools: Cell, Chocolate, Tray, Fixed jelly</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
     $('#fName').addEventListener('change',e=>{const v=e.target.value.trim()||lv.Name;lv.Name=v;commit();$('#lvTitle').textContent=v;});
     $('#fDiff').addEventListener('change',e=>{lv.Difficulty=+e.target.value;commit();});
     $('#fQueen').addEventListener('change',e=>{lv.QueenHp=Math.max(1,+e.target.value||1);commit();renderEdit();});
@@ -341,7 +341,7 @@ function renderPane(){
     p.innerHTML=`<h2>Board</h2>
       <div class="fields">${fld('Width','BoardWidth',num('bW',lv.BoardWidth,'min="3" max="12"'))}${fld('Height','BoardHeight',num('bH',lv.BoardHeight,'min="3" max="12"'))}</div>
       <p class="hint"><code>BoardRows</code>: "." cell, "#" no cell, a color letter = the cube starts with that color (under a chocolate: the cube it shows when it breaks). <code>BoardElements</code>: a digit 1–9 = Chocolate Layer with that HP, "X" = chocolate with the default HP, "T" Jelly Bottle tray (2×2).</p>
-      <div class="btns"><button class="btn" id="bMirror" type="button">Mirror shape left → right</button><button class="btn" id="bFull" type="button">All cells on</button><button class="btn" id="bClear" type="button">Remove all elements</button></div>
+      <div class="btns"><button class="btn" id="bMirror" type="button">Mirror shape left → right</button><button class="btn" id="bFull" type="button">All cells on</button><button class="btn" id="bClear" type="button">Remove all elements</button><button class="btn" id="bRandom" type="button">Make all jellies random</button></div>
       <h3>Jelly Bottle trays <code>TrayBottles</code></h3>
       ${tr.length?tr.map((t,i)=>`<div class="elem"><b>Tray ${i+1} · row ${t.r+1}, cell ${t.c+1}</b>
         <div class="bottles">${[0,1,2,3].map(j=>`<select data-tray="${i}" data-b="${j}" aria-label="Tray ${i+1} bottle ${j+1}">${[...String(lv.Colors)].map(k=>`<option value="${k}" ${((lv.TrayBottles[i]||'')[j])===k?'selected':''}>${k} · ${colorName(k)}</option>`).join('')}</select>`).join('')}</div>
@@ -355,6 +355,7 @@ function renderPane(){
     $('#bMirror').addEventListener('click',()=>{const before=trayMap(lv);lv.BoardRows=lv.BoardRows.map(r=>{const h=Math.floor(r.length/2);return r.slice(0,r.length-h)+[...r.slice(0,h)].reverse().join('');});
       lv.BoardElements=lv.BoardElements.map((e,i)=>[...e].map((ch,c)=>lv.BoardRows[i][c]===HOLE?'.':ch).join(''));fixStrayTrays(lv);syncTrays(lv,before);commit();renderAll();});
     $('#bFull').addEventListener('click',()=>{lv.BoardRows=lv.BoardRows.map(r=>'.'.repeat(r.length));commit();renderAll();});
+    $('#bRandom').addEventListener('click',()=>{lv.BoardRows=lv.BoardRows.map(r=>r.replace(/[A-Z]/g,'.'));commit();renderAll();});
     $('#bClear').addEventListener('click',()=>{lv.BoardElements=lv.BoardElements.map(r=>'.'.repeat(r.length));lv.TrayBottles=[];commit();renderAll();});
     $$('[data-tray]').forEach(s=>s.addEventListener('change',e=>{const i=+e.target.dataset.tray,j=+e.target.dataset.b;lv.TrayBottles[i]=setCh(String(lv.TrayBottles[i]||'').padEnd(4,lv.Colors[0]||'R'),j,e.target.value);commit();renderEdit();refreshChecks();}));
     $('#bLayers').addEventListener('change',e=>{prefs.chocoLayers=Math.max(1,Math.min(9,+e.target.value||3));savePrefs();renderEdit();syncTools();});

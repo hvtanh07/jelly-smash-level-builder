@@ -189,6 +189,10 @@ export function check(lv){
   tb.forEach((s,i)=>{if(s.length!==4)bad(`TrayBottles ${i+1} has ${s.length} bottles, a tray holds 4.`);
     if(new Set(s).size!==s.length)warn(`TrayBottles ${i+1}: two bottles share a color (the GDD says each is a different color).`);
     [...s].forEach(k=>{if(!colors.includes(k))bad(`TrayBottles ${i+1}: "${k}" is not in Colors.`);});});
+  const fixed=(r,c)=>{const k=(br[r]||'')[c];return /^[A-Z]$/.test(k||'')&&(be[r]||'')[c]==='.'?k:null;};
+  br.forEach((row,r)=>{for(let c=0;c<row.length;c++){const k=fixed(r,c);if(!k)continue;
+    if(k===fixed(r,c+1)&&k===fixed(r,c+2))warn(`Board row ${r+1}, cells ${c+1}–${c+3}: fixed cubes already make a line of 3 at the start.`);
+    if(k===fixed(r+1,c)&&k===fixed(r+2,c))warn(`Board column ${c+1}, rows ${r+1}–${r+3}: fixed cubes already make a line of 3 at the start.`);}});
   let cells=0;br.forEach((row,r)=>{for(let c=0;c<row.length;c++)if(row[c]!==HOLE&&(be[r]||'')[c]==='.')cells++;});
   if(cells<9)warn(`Only ${cells} free board cells.`);
   // slots

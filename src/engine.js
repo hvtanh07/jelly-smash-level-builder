@@ -115,6 +115,9 @@ function fillBoard(G){
   for(let r=0;r<G.BH;r++)for(let c=0;c<G.BW;c++){const x=G.cells[r][c];if(!x)continue;
     if(x.kind==='cube'){if(!x.preset)x.color=pickColor(G,w,avoidAt(G,r,c));x.from=r-G.BH-1;}
     else if(x.kind==='choco'&&!x.preset)x.color=pickColor(G,w,new Set());}
+  // random cubes next to fixed ones can still line up: re-roll only the random cubes in a ready match
+  for(let k=0;k<30;k++){const gs=findGroups(G);if(!gs.length)break;
+    gs.forEach(g=>g.cells.forEach(([r,c])=>{const x=G.cells[r][c];if(!x.preset)x.color=pickColor(G,w,new Set([g.color]));}));}
   if(!findMove(G))reshuffle(G);
   ensureGoodMove(G,false);
   G.state='fall';G.timer=+G.lv.FallSeconds||0;G.initialFall=true;

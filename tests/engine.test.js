@@ -82,3 +82,12 @@ describe('chocolate HP and start colors',()=>{
       expect(G.cells[0][0].color).toBe('R');expect(G.cells[0][1].color).toBe('R');expect(G.cells[0][3].color).toBe('B');}
   });
 });
+
+describe('fixed start cubes',()=>{
+  it('random cubes never complete a line with fixed cubes at the start',()=>{
+    const rows=Array(6).fill('......');rows[2]='.RR.RR';rows[3]='B.B.B.';
+    for(let s=1;s<40;s++){const G=newGame(mini({BoardRows:rows}),{seed:s});
+      expect(findGroups(G)).toEqual([]);
+      expect([G.cells[2][1].color,G.cells[2][2].color,G.cells[3][0].color]).toEqual(['R','R','B']);}
+  });
+});
