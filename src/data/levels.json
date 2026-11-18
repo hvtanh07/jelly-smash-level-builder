@@ -358,14 +358,14 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "BRYBBYRB",
-      "RRGOOGRR",
-      "OGBYYBGO",
-      "GBRGGRBG",
-      "RYOYYOYR",
-      "GBGRRGBG",
-      "ROGBBGOR",
-      "GRYGGYRG"
+      "OROBBORO",
+      "RBRGGRBR",
+      "GG####GG",
+      "RO####OR",
+      "GO####OG",
+      "RG####GR",
+      "BOBGGBOB",
+      "RGRGGRGR"
     ],
     "BoardElements": [
       "........",
@@ -443,14 +443,14 @@
     "BoardWidth": 8,
     "BoardHeight": 8,
     "BoardRows": [
-      "BRBGGBRB",
-      "OGROORGO",
-      "RYYBBYYR",
-      "BRRGGRRB",
-      "BBGYYGBB",
-      "GYROORYG",
-      "GYBGGBYG",
-      "RBGOOGBR"
+      "OYG##GYO",
+      "YOO##OOY",
+      "RBO##OBR",
+      "OYB##BYO",
+      "GBR##RBG",
+      "OYO##OYO",
+      "ORR##RRO",
+      "BYG##GYB"
     ],
     "BoardElements": [
       "........",
