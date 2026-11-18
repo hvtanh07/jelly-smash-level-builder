@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import fs from 'node:fs';
-import {newGame,step,ammoFor,pickTarget,useBooster,simulate,findGroups,available,trySwap} from '../src/engine.js';
+import {newGame,step,ammoFor,pickTarget,useBooster,simulate,findGroups,available,trySwap,spawnWeights} from '../src/engine.js';
 import {normalize} from '../src/format.js';
 
 const demo=JSON.parse(fs.readFileSync(new URL('./fixtures/level_demo.json',import.meta.url),'utf8'));
@@ -72,6 +72,11 @@ describe('rules',()=>{
     expect(G.cells[5][0].kind).toBe('cube');
     expect([3,4,5].map(r=>G.cells[r][2].kind)).toContain('empty');
     expect(G.cells[5][1].kind).toBe('cube');
+  });
+  it('RefillColors: new cubes only get the listed colors',()=>{
+    const G=newGame(mini({RefillColors:'BY'}),{seed:5});settle(G);
+    const w=spawnWeights(G);expect([...w.keys()].sort()).toEqual(['B','Y']);
+    const G2=newGame(mini({}),{seed:5});settle(G2);expect(spawnWeights(G2).size).toBeGreaterThanOrEqual(4);
   });
   it('an Armored Ant takes HP shots',()=>{
     const G=newGame(mini({WallHp:['1111','1111','3111']}),{seed:1});settle(G);

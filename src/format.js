@@ -5,6 +5,8 @@ export const KEYS=['Name','Difficulty','Colors','SlotCount','WallRows','WallHp',
   'WallBoostFactor','WallBoostMinRows','WallBoostMinAnts','WallBoostStopRows','LoseDepthCells','BoardWidth','BoardHeight',
   'BoardRows','BoardElements','TrayBottles','QueenHp','SlotLocks','FireInterval','ShotFlight','SwapSeconds','MatchHold',
   'MatchFlight','FallSeconds','RefillFrontShare'];
+// tool keys the game file does not have yet; written only when set
+export const OPTIONAL_KEYS=['RefillColors'];
 
 /* Cell letters.
    WallRows: a color letter is an ant of that color, Q is a Queen Ant cell (2×2), "." is an empty cell.
@@ -12,7 +14,8 @@ export const KEYS=['Name','Difficulty','Colors','SlotCount','WallRows','WallHp',
    BoardRows: "." is a cell, "#" is no cell, a color letter is a cell whose cube starts with that color
      (under a chocolate: the cube it shows when it breaks).
    BoardElements: "." nothing, a digit 1–9 is a Chocolate Layer with that HP, "X" a Chocolate Layer with the default HP,
-     "T" Jelly Bottle tray (2×2). */
+     "T" Jelly Bottle tray (2×2).
+   Optional key RefillColors (tool field, written only when set, after the game keys): the only colors new cubes can have. */
 export const PALETTE=[
   {k:'R',name:'Red',hex:'#E5484D'},
   {k:'B',name:'Blue',hex:'#2F6FEB'},
@@ -156,7 +159,7 @@ export function check(lv){
   const out=[];
   const bad=t=>out.push({lvl:'bad',t}),warn=t=>out.push({lvl:'warn',t});
   for(const k of KEYS)if(lv[k]===undefined)bad(`Missing key ${k}.`);
-  const extra=Object.keys(lv).filter(k=>!KEYS.includes(k));if(extra.length)warn(`Keys the game file doesn't have: ${extra.join(', ')}. They are exported as they are.`);
+  const extra=Object.keys(lv).filter(k=>!KEYS.includes(k)&&!OPTIONAL_KEYS.includes(k));if(extra.length)warn(`Keys the game file doesn't have: ${extra.join(', ')}. They are exported as they are.`);
   const colors=String(lv.Colors||'');
   if(!colors.length)bad('Colors is empty.');
   [...colors].forEach(k=>{if(!COLOR_KEYS.includes(k))bad(`Colors has "${k}", which is not a known color letter.`);});
@@ -210,6 +213,8 @@ export function check(lv){
   // tuning
   for(const t of TUNING)if(!isNum(lv[t.k]))bad(`${t.k} must be a number.`);
   if(isNum(lv.RefillFrontShare)&&(lv.RefillFrontShare<0||lv.RefillFrontShare>1))bad('RefillFrontShare must be between 0 and 1.');
+  {const rc=String(lv.RefillColors||'');[...rc].forEach(k=>{if(!colors.includes(k))bad(`RefillColors: "${k}" is not in Colors.`);});
+   if(rc&&rc.length<2)warn('RefillColors has fewer than 2 colors: new cubes cannot make lines of 3 without a ready match.');}
   if(isNum(lv.WallStartVisibleRows)&&isNum(lv.LoseDepthCells)&&lv.WallStartVisibleRows>=lv.LoseDepthCells)bad('The wall starts at or past the red line.');
   if(colors.length<4)warn('Fewer than 4 colors: the GDD keeps at least 4 colors on the board.');
   if(![0,1,2].includes(lv.Difficulty))warn(`Difficulty is ${lv.Difficulty}; the tool knows 0 Normal, 1 Hard, 2 Super hard.`);

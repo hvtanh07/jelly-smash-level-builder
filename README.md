@@ -42,6 +42,7 @@ The tool reads and writes the same keys, in the same order, as the game's level 
 | `WallDescentPerSecond`, `WallBoost*` | Wall speed in rows per second; speed-up ×`WallBoostFactor` while fewer than `WallBoostMinAnts` ants or `WallBoostMinRows` rows are in view, never within `WallBoostStopRows` of the red line or once the top row is in view. |
 | `FireInterval`, `ShotFlight`, `SwapSeconds`, `MatchHold`, `MatchFlight`, `FallSeconds` | Timings in seconds. |
 | `RefillFrontShare` | Share of new cubes colored by the bottom-row colors of the wall; the rest is even. |
+| `RefillColors` | Only these colors can appear on new cubes, and the Help rule only plants them. Empty = any color still on the wall (at least 4). Tool field, not in the GDD yet. |
 
 Open questions, where the tool picked a reading: a color letter in `BoardRows` (the `B` in L10) is read as a fixed start color; `X` without a digit keeps the default chocolate HP; `Difficulty` is read as 0 Normal, 1 Hard, 2 Super hard.
 
