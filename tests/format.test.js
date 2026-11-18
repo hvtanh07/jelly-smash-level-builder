@@ -8,7 +8,8 @@ const demo=fs.readFileSync(new URL('./fixtures/level_demo.json',import.meta.url)
 describe('level format',()=>{
   it('writes the game file back byte for byte',()=>{
     expect(serialize(JSON.parse(demo))).toBe(demo.trim());
-    expect(serialize(LEVELS[0])).toBe(demo.trim());
+    for(const lv of LEVELS)expect(serialize(JSON.parse(serialize(lv)))).toBe(serialize(lv));
+    expect(LEVELS.map(l=>l.Name)).toEqual(['L1','L2','L3','L4','L5','L6','L7','L8','L9','L10']);
   });
   it('keeps the key order of the game file',()=>{
     expect(Object.keys(JSON.parse(demo))).toEqual(KEYS);
@@ -42,5 +43,12 @@ describe('SlotLocks',()=>{
   it('an empty SlotLocks means every slot is open',()=>{
     const lv=JSON.parse(demo);lv.SlotLocks='';
     expect(check(lv).filter(i=>i.lvl==='bad')).toEqual([]);
+  });
+});
+
+describe('sheet rows',()=>{
+  it('reads Id and Level rows copied from the sheet',()=>{
+    const rows='Id\tLevel\n'+LEVELS.slice(0,3).map((lv,i)=>`${i+1}\t"${serialize(lv).replace(/"/g,'""')}"`).join('\n');
+    expect(parseLevels(rows).map(l=>l.Name)).toEqual(['L1','L2','L3']);
   });
 });

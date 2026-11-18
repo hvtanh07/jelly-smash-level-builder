@@ -89,6 +89,11 @@ export const serializeAll=list=>JSON.stringify(list.map(normalize),null,2);
 export function looksLikeLevel(o){return !!(o&&typeof o==='object'&&!Array.isArray(o)&&(Array.isArray(o.WallRows)||Array.isArray(o.BoardRows)));}
 export function parseLevels(text){
   text=String(text||'').trim();if(!text)return [];
+  // rows copied from the sheet: quoted cells with "" for each quote
+  if(/\t"\{/.test(text)||/^"\{/.test(text)){
+    const got=[];for(const m of text.matchAll(/"((?:[^"]|"")*)"/g)){try{const x=JSON.parse(m[1].replace(/""/g,'"'));if(looksLikeLevel(x))got.push(normalize(x));}catch(e){}}
+    if(got.length)return got;
+  }
   let o;try{o=JSON.parse(text);}catch(e){
     // several objects pasted one after another
     const parts=[];let depth=0,start=-1,q=false,esc=false;
