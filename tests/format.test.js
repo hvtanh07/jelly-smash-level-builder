@@ -37,3 +37,10 @@ describe('level format',()=>{
     expect(bad).toMatch(/WallHp row 1/);expect(bad).toMatch(/SlotLocks has 3/);expect(bad).toMatch(/TrayBottles lists 0/);
   });
 });
+
+describe('SlotLocks',()=>{
+  it('an empty SlotLocks means every slot is open',()=>{
+    const lv=JSON.parse(demo);lv.SlotLocks='';
+    expect(check(lv).filter(i=>i.lvl==='bad')).toEqual([]);
+  });
+});
