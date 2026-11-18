@@ -579,8 +579,8 @@ $('#btnImport').addEventListener('click',()=>{
 });
 const fileName=lv=>String(lv.Name||'level').replace(/[^\w.-]+/g,'_')+'.json';
 $('#btnExport').addEventListener('click',()=>{
-  openModal('Export levels',`<p class="hint">Each level uses the game's keys and layout. "This level" is one object like level_demo.json; "All levels" is a JSON list.</p>
-    <div class="btns"><button class="btn primary" type="button" data-exp="one">Copy this level</button><button class="btn" type="button" data-exp="all">Copy all (${levels.length})</button>
+  openModal('Export levels',`<p class="hint">Each level uses the game's keys and layout. "This level" is one object like level_demo.json; "All levels" is a JSON list; sheet rows paste into the Id and Level columns of the Level Config sheet.</p>
+    <div class="btns"><button class="btn primary" type="button" data-exp="one">Copy this level</button><button class="btn" type="button" data-exp="all">Copy all (${levels.length})</button><button class="btn" type="button" data-exp="sheet">Copy as sheet rows</button>
     ${inFrame?'':'<button class="btn" type="button" data-exp="dlone">Download this level</button><button class="btn" type="button" data-exp="dlall">Download all</button><button class="btn" type="button" data-exp="dleach">Download each as its own file</button>'}</div>
     <div class="msg" id="expMsg"></div>
     <textarea class="code" id="expText" spellcheck="false" aria-label="Exported text" readonly></textarea>`,
@@ -591,8 +591,8 @@ $('#btnExport').addEventListener('click',()=>{
     if(k==='dlone'){download(fileName(L()),serialize(L()));return;}
     if(k==='dlall'){download('jelly_smash_levels.json',serializeAll(levels));return;}
     if(k==='dleach'){levels.forEach((lv,i)=>setTimeout(()=>download(fileName(lv),serialize(lv)),i*250));return;}
-    const txt=k==='all'?serializeAll(levels):serialize(L());$('#expText').value=txt;
-    copyText(txt,k==='all'?`Copied ${levels.length} levels.`:'Level JSON copied.',$('#expText'));});
+    const txt=k==='sheet'?'Id\tLevel\n'+levels.map((lv,i)=>{const m=/(\d+)$/.exec(lv.Name||'');return `${m?+m[1]:i+1}\t"${serialize(lv).replace(/"/g,'""')}"`;}).join('\n'):k==='all'?serializeAll(levels):serialize(L());$('#expText').value=txt;
+    copyText(txt,k==='sheet'?`Copied ${levels.length} sheet rows (Id, Level).`:k==='all'?`Copied ${levels.length} levels.`:'Level JSON copied.',$('#expText'));});
 });
 $('#tCopy').addEventListener('click',()=>copyText(serialize(L()),'Level JSON copied.'));
 function copyText(txt,ok,fallbackEl){

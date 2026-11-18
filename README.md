@@ -1,6 +1,6 @@
 # Jelly Smash Level Builder
 
-A level builder for Jelly Smash, built on the rules in the [Jelly Smash GDD](https://hvtanh07.github.io/gdd-jelly-smash/). The level from the sheet (L10, hard, every element) is preloaded in the list on the left.
+A level builder for Jelly Smash, built on the rules in the [Jelly Smash GDD](https://hvtanh07.github.io/gdd-jelly-smash/). The first 10 levels from the Level Config sheet are preloaded in the list on the left.
 
 ## Run it
 
@@ -22,7 +22,7 @@ Every push to `main` runs the tests, builds, and publishes `dist/` to the `gh-pa
 - **Inspector:** Level (name, difficulty, colors, slots, locks, queen HP), Wall (size, mirror, flip, color-block generator, armor re-roll, counts per color), Board (size, mirror, tray bottle colors), Tuning (all timing and wall-speed numbers), Check (format errors, shots needed, bot estimate), JSON (live text, apply, copy, download).
 - **Play test:** the game rules on a canvas laid out like the game. Swap by drag or tap, Hand / Shuffle / Bomb boosters, speed 0.5×–8×, pause, fixed seed, and a bot that can play for you.
 - **Bot estimate:** a greedy bot plays the level N times and reports win rate, time, wall cleared, cannons lost to full slots and merges. It is a rough floor, not a real player.
-- **Import / export:** one level, a JSON list, or several level objects pasted one after another. Export writes the exact layout of the game file. Paste a level anywhere on the page to add it.
+- **Import / export:** one level, a JSON list, several level objects pasted one after another, or Id/Level rows copied from the sheet. "Copy as sheet rows" pastes back into the sheet. Export writes the exact layout of the game file. Paste a level anywhere on the page to add it.
 
 ## Level format
 
@@ -65,5 +65,5 @@ From the GDD, sections 1.2, 1.4 and 1.5:
 - `src/format.js`: the level format, reading, writing and checks.
 - `src/engine.js`: game rules, boosters and the bot.
 - `src/render.js`: draws the play test.
-- `src/data/levels.json`: the built-in levels ("the sheet").
+- `src/data/levels.json`: the built-in levels, same as the Level Config sheet (L1–L10).
 - `tests/`: Vitest tests.
