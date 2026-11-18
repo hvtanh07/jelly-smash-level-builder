@@ -51,7 +51,6 @@ From the GDD, sections 1.2, 1.4 and 1.5:
 
 - Swap two neighboring cubes; a line of 3+ matches. Touching lines of one color are one group, n cubes, ammo = 2n − 3. Cascades match on their own.
 - Each match sends a cannon to the leftmost open, empty slot. 3 cannons of one color merge into the leftmost with their ammo added. Slots full: the cannon is lost, unless 2 cannons of its color are in the slots, then it merges into them and a slot opens. A cannon leaves at 0 ammo or when its color is gone from the wall.
-- **Slots** (play test toolbar, also used by the bot): *Conveyor* (default, a trial not yet in the GDD) slides the row left to right: a new cannon enters the leftmost open slot and pushes the others right up to the first empty slot; with no empty slot the rightmost cannon is pushed out and lost. A cannon whose color is already twice in the row merges into them. *Fill left* is the GDD rule above.
 - Cannons fire every `FireInterval` at front ants of their color that are in view, lowest first, then left to right.
 - New cubes are colored so each bottom-row color gets a swap that makes a line of 3; if that fails, a few board cubes change color with a glow. No move left: the board reshuffles.
 - Chocolate Layer: a match next to it removes 1 HP; at 0 the cube under it opens. Nothing falls through it.

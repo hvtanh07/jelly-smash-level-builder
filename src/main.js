@@ -17,7 +17,7 @@ const inFrame=(()=>{try{return window.self!==window.top;}catch(e){return true;}}
 let levels=[],cur=0,tab='level',mode='edit';
 let undo=[],redo=[],lastSnap='';
 let tool='color',brushColor='R',brushHp=1;
-let prefs={chocoLayers:3,botRuns:20,botThink:0.5,zoom:'width',slotMode:'conveyor'};
+let prefs={chocoLayers:3,botRuns:20,botThink:0.5,zoom:'width'};
 let chocoBrush='3';
 const L=()=>levels[cur];
 
@@ -460,7 +460,7 @@ function runBot(){
   const tick=()=>{
     if(job!==botJob||!$('#botOut'))return;
     const t0=performance.now();
-    while(res.length<n&&performance.now()-t0<40)res.push(simulate(lv,{seed:1000+res.length,think:prefs.botThink,chocoLayers:prefs.chocoLayers,slotMode:prefs.slotMode}));
+    while(res.length<n&&performance.now()-t0<40)res.push(simulate(lv,{seed:1000+res.length,think:prefs.botThink,chocoLayers:prefs.chocoLayers}));
     const w=res.filter(r=>r.result==='win'),avg=(a,f)=>a.length?a.reduce((s,r)=>s+f(r),0)/a.length:0;
     $('#botOut').innerHTML=`<table class="tally"><tbody>
       <tr><td>Runs</td><td>${res.length}/${n}</td></tr>
@@ -486,7 +486,7 @@ function setMode(m){
 $('#modeEdit').addEventListener('click',()=>setMode('edit'));
 $('#modePlay').addEventListener('click',()=>{if(check(L()).some(i=>i.lvl==='bad')){toast('This level has errors. Open the Check tab.');tab='check';renderPane();return;}setMode('play');});
 function startGame(){
-  const seed=+$('#pSeed').value;G=newGame(clone(L()),{seed:isFinite(seed)?seed:1,chocoLayers:prefs.chocoLayers,slotMode:prefs.slotMode});GL=layoutOf(G);
+  const seed=+$('#pSeed').value;G=newGame(clone(L()),{seed:isFinite(seed)?seed:1,chocoLayers:prefs.chocoLayers});GL=layoutOf(G);
   ui={sel:null,hint:null,pops:[],dark:false};idle=0;botWait=prefs.botThink;banner();sizeCanvas();syncBoost();
 }
 function sizeCanvas(){
@@ -499,7 +499,6 @@ $('#pRestart').addEventListener('click',startGame);
 $('#pSeed').addEventListener('change',startGame);
 $('#pPause').addEventListener('click',()=>{paused=!paused;$('#pPause').setAttribute('aria-pressed',String(paused));});
 $('#pSpeed').addEventListener('change',e=>{speed=+e.target.value||1;});
-$('#pSlots').addEventListener('change',e=>{prefs.slotMode=e.target.value;savePrefs();startGame();});
 $('#pAuto').addEventListener('click',()=>{auto=!auto;$('#pAuto').setAttribute('aria-pressed',String(auto));});
 const BST={hand:'#bHand',shuffle:'#bShuffle',bomb:'#bBomb'};
 Object.entries(BST).forEach(([k,id])=>$(id).addEventListener('click',()=>{if(G&&useBooster(G,k)){syncBoost();}else toast(k==='hand'?'Hand needs a cannon in the slots.':k==='shuffle'?'Wait until the board settles.':'Nothing to bomb.');}));
@@ -637,7 +636,7 @@ function renderAll(){
 
 load();
 if(savedBase!==BASE){$('#saveNote').textContent=STALE;setTimeout(()=>toast('New built-in levels: press Reset to sheet to load them.'),400);}
-$('#zoom').value=prefs.zoom;$('#pSlots').value=prefs.slotMode;refreshAllStatus();resetHistory();renderAll();
+$('#zoom').value=prefs.zoom;refreshAllStatus();resetHistory();renderAll();
 requestAnimationFrame(()=>renderEdit());
 requestAnimationFrame(frame);
 window.__js={levels:()=>levels,simulate,newGame,check,serialize,game:()=>G};

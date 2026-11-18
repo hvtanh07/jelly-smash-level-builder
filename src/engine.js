@@ -12,7 +12,7 @@ export const praise=n=>n>=10?'Epic':n>=8?'Extreme':n>=6?'Amazing':n>=5?'Great':'
 export function newGame(lv,opt={}){
   const rng=mulberry32(opt.seed==null?(Math.random()*1e9)|0:opt.seed);
   const rows=lv.WallRows||[],R=rows.length,C=Math.max(0,...rows.map(r=>r.length));
-  const G={lv,rng,opt:{chocoLayers:3,slotMode:'fill',...opt},t:0,started:false,over:null,events:[],
+  const G={lv,rng,opt:{chocoLayers:3,...opt},t:0,started:false,over:null,events:[],
     R,C,wy:+lv.WallStartVisibleRows||0,boost:1,ants:[],cellAnt:[],
     BW:+lv.BoardWidth,BH:+lv.BoardHeight,cells:[],trays:[],state:'idle',timer:0,swapPair:null,holdGroups:null,
     slots:[],flights:[],shots:[],volleys:[],hint:null,goodCols:'',
@@ -289,7 +289,6 @@ function gravity(G){
 /* ---------- cannons ---------- */
 function placeCannon(G,f){
   if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
-  if(G.opt.slotMode==='conveyor'){conveyorPlace(G,f);return;}
   const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
   if(i<0){
     // slots full: a third cannon of a color already twice in the slots still merges, freeing a slot
@@ -299,20 +298,6 @@ function placeCannon(G,f){
     G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
   G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
   // GDD 1.4 Locked Slot: each cannon that enters a slot counts every locked slot down by 1
-  G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
-}
-/* Conveyor slots (tool trial, not in the GDD): the row slides left to right. A new cannon enters the leftmost open slot
-   and pushes the cannons on its right one slot further, up to the first empty slot. With no empty slot, the rightmost
-   cannon is pushed out and lost. A cannon whose color is already twice in the row merges into them instead. */
-export const openSlots=G=>G.slots.map((s,i)=>i).filter(i=>G.slots[i].lock===0);
-function conveyorPlace(G,f){
-  const open=openSlots(G);if(!open.length){G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
-  const same=open.filter(j=>{const k=G.slots[j].cannon;return k&&k.color===f.color&&k.ammo>0;});
-  if(same.length>=2){const [a,b]=same,keep=G.slots[a].cannon;keep.ammo+=f.ammo+G.slots[b].cannon.ammo;keep.pop=1;G.slots[b].cannon=null;
-    G.stats.merges++;G.events.push({type:'merge',slot:a,color:f.color,from:[b]});return;}
-  let carry={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1,slide:0};
-  for(const j of open){const here=G.slots[j].cannon;G.slots[j].cannon=carry;if(carry!==null&&j!==open[0])carry.slide=1;carry=here;if(!carry)break;}
-  if(carry){G.stats.lost++;G.stats.lostAmmo+=carry.ammo;G.events.push({type:'pushout',slot:open[open.length-1],color:carry.color,ammo:carry.ammo});}
   G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
 }
 function mergeTriples(G){
@@ -334,7 +319,7 @@ function updateCannons(G,dt){
   mergeTriples(G);
   const fire=+G.lv.FireInterval||0.15;
   G.slots.forEach((s,i)=>{const k=s.cannon;if(!k)return;
-    k.pop=Math.max(0,(k.pop||0)-dt*3.5);if(k.slide)k.slide=Math.max(0,k.slide-dt*6);
+    k.pop=Math.max(0,(k.pop||0)-dt*3.5);
     if(available(G,k.color)<=0){G.stats.lostAmmo+=k.ammo;s.cannon=null;return;}   // its color is gone from the wall
     k.cd-=dt;
     if(k.cd<=0){const a=pickTarget(G,k.color);
@@ -446,11 +431,6 @@ export function botMove(G){
   G.flights.forEach(f=>held.set(f.color,(held.get(f.color)||0)+f.ammo));
   const free=G.slots.filter(s=>s.lock===0&&!s.cannon).length-G.flights.length;
   const sameIn=k=>G.slots.filter(s=>s.cannon&&s.cannon.color===k).length;
-  // conveyor: when the row is full, a new cannon pushes out the rightmost one; count what that one could still fire
-  const conv=G.opt.slotMode==='conveyor',open=conv?openSlots(G):[];
-  const gaps=conv?open.filter(j=>!G.slots[j].cannon).length-G.flights.length:0;
-  const last=conv&&open.length?G.slots[open[open.length-1]].cannon:null;
-  const pushCost=conv&&gaps<=0&&last?(pickTarget(G,last.color)?last.ammo:last.ammo*0.3):0;
   let best=null,bs=-Infinity;
   for(const [a,b] of moves){
     swapCells(G,a,b);const groups=findGroups(G);
@@ -460,12 +440,11 @@ export function botMove(G){
       let bonus=0;for(const [r,c] of neighbors(G,g.cells)){const x=G.cells[r][c];if(!x)continue;
         if(x.kind==='choco')bonus+=1.5;
         if(x.kind==='tray'){const t=G.trays[x.tray];if(t.bottles.some(q=>!q.broken&&q.color===g.color))bonus+=4;}}
-      const room=conv||free>0||sameIn(g.color)>=2;
+      const room=free>0||sameIn(g.color)>=2;
       const front=pickTarget(G,g.color)?3:0;
       s+=(room&&need>0?Math.min(ammo+bonus,need)+front:-2)+bonus*0.5;
     }
     // lower matches shake more cubes loose
-    if(conv&&groups.some(g=>sameIn(g.color)<2))s-=pushCost;
     s+=Math.max(a[0],b[0])*0.05+G.rng()*0.3;
     swapCells(G,a,b);
     if(s>bs){bs=s;best=[a,b];}
@@ -474,7 +453,7 @@ export function botMove(G){
   return bs<0?null:best;
 }
 export function simulate(lv,opt={}){
-  const G=newGame(lv,{seed:opt.seed,chocoLayers:opt.chocoLayers,slotMode:opt.slotMode});
+  const G=newGame(lv,{seed:opt.seed,chocoLayers:opt.chocoLayers});
   const dt=opt.dt||1/30,maxT=opt.maxTime||900,think=opt.think==null?0.5:opt.think;
   let wait=think;
   while(!G.over&&G.t<maxT){
