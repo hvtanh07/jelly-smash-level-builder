@@ -351,7 +351,7 @@ function renderPane(){
       <div class="fields">${fld('Default HP for "X"','',num('bLayers',prefs.chocoLayers,'min="1" max="9"'))}</div>
       <p class="hint">Only used for cells still written as "X". Not exported.</p>
       <label class="chk"><input type="checkbox" id="bStarve" ${prefs.chocoStarves?'checked':''}> No new cubes below chocolate until it breaks</label>
-      <p class="hint">Trial rule for the play test and the bot, not in the GDD yet. Off: cells below a chocolate refill on their own.</p>`;
+      <p class="hint">GDD rule (on). Turn off to compare: cells below a chocolate then refill on their own.</p>`;
     $('#bW').addEventListener('change',e=>{resizeBoard(lv,Math.max(3,Math.min(12,+e.target.value||3)),lv.BoardHeight);commit();renderAll();});
     $('#bH').addEventListener('change',e=>{resizeBoard(lv,lv.BoardWidth,Math.max(3,Math.min(12,+e.target.value||3)));commit();renderAll();});
     $('#bMirror').addEventListener('click',()=>{const before=trayMap(lv);lv.BoardRows=lv.BoardRows.map(r=>{const h=Math.floor(r.length/2);return r.slice(0,r.length-h)+[...r.slice(0,h)].reverse().join('');});
