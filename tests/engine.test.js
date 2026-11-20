@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import fs from 'node:fs';
 import {newGame,step,ammoFor,pickTarget,useBooster,simulate,findGroups,available,trySwap,spawnWeights} from '../src/engine.js';
-import {normalize} from '../src/format.js';
+import {normalize,check,tally} from '../src/format.js';
 
 const demo=JSON.parse(fs.readFileSync(new URL('./fixtures/level_demo.json',import.meta.url),'utf8'));
 /* a small level: 4 columns, 3 rows, plain 6×6 board */
@@ -121,6 +121,11 @@ describe('fixed start cubes',()=>{
   });
 });
 
+describe('SlotLocks with commas',()=>{
+  it('reads locks of 10 or more',()=>{const G=newGame(mini({SlotLocks:'0,0,0,2,10'}),{seed:1});expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,2,10]);});
+  it('passes the check and counts both locks',()=>{const lv=normalize(mini({SlotLocks:'0,0,0,2,10'}));expect(check(lv).filter(i=>i.lvl==='bad').map(i=>i.t).filter(t=>/Slot/.test(t))).toEqual([]);expect(tally(lv).locks).toBe(2);});
+  it('flags a wrong count',()=>{const lv=normalize(mini({SlotLocks:'0,2,10'}));expect(check(lv).some(i=>i.lvl==='bad'&&/SlotLocks has 3 values/.test(i.t))).toBe(true);});
+});
 describe('empty SlotLocks',()=>{
   it('opens every slot',()=>{const G=newGame(mini({SlotLocks:''}),{seed:1});expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,0,0]);});
 });

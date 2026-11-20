@@ -142,6 +142,10 @@ export function findTrays(rows){
   return {trays,stray};
 }
 
+/* SlotLocks: one digit per slot ("0003"), or comma-separated when a lock needs 10+ ("0,0,2,10"). */
+export function parseLocks(v,n){const s=String(v==null?'':v);const a=s.includes(',')?s.split(',').map(x=>x.trim()):s.split('');
+  const out=a.map(x=>parseInt(x,10)||0);if(n!=null){while(out.length<n)out.push(0);out.length=n;}return out;}
+export function formatLocks(a){return a.some(x=>x>9)?a.join(','):a.join('');}
 /* ---------- summary numbers ---------- */
 export function tally(lv){
   const rows=lv.WallRows||[],by={};let ants=0,armored=0,hp=0;
@@ -150,7 +154,7 @@ export function tally(lv){
   const q=findQueens(rows).queens.length,qhp=q*(+lv.QueenHp||0);
   const {trays}=findTrays(lv.BoardElements||[]);
   let choco=0;(lv.BoardElements||[]).forEach(r=>{for(const ch of r)if(isChoco(ch))choco++;});
-  const locks=String(lv.SlotLocks||'').split('').filter(d=>d!=='0').length;
+  const locks=parseLocks(lv.SlotLocks).filter(d=>d>0).length;
   return {ants,armored,hp,by,queens:q,queenHp:qhp,shots:hp+qhp,trays:trays.length,choco,locks};
 }
 
@@ -204,12 +208,13 @@ export function check(lv){
   let cells=0;br.forEach((row,r)=>{for(let c=0;c<row.length;c++)if(row[c]!==HOLE&&(be[r]||'')[c]==='.')cells++;});
   if(cells<9)warn(`Only ${cells} free board cells.`);
   // slots
-  const n=+lv.SlotCount,locks=String(lv.SlotLocks||'');
+  const n=+lv.SlotCount,locks=String(lv.SlotLocks||''),comma=locks.includes(',');
   if(!(n>0))bad('SlotCount must be above 0.');
-  if(locks.length&&locks.length!==n)bad(`SlotLocks has ${locks.length} digits, SlotCount is ${n}.`);
   // an empty SlotLocks ("") means no locked slot, as in the game file
-  if(!/^[0-9]*$/.test(locks))bad('SlotLocks must be digits (0 = open).');
-  if(locks.length&&![...locks].includes('0'))bad('Every slot is locked: no cannon can ever enter, so no lock can open.');
+  if(comma?!/^\d+(,\d+)*$/.test(locks):!/^[0-9]*$/.test(locks))bad('SlotLocks must be digits (0 = open), or numbers split by commas when a lock is 10 or more.');
+  else{const ls=parseLocks(locks);
+    if(locks.length&&ls.length!==n)bad(`SlotLocks has ${ls.length} ${comma?'values':'digits'}, SlotCount is ${n}.`);
+    if(locks.length&&!ls.includes(0))bad('Every slot is locked: no cannon can ever enter, so no lock can open.');}
   // tuning
   for(const t of TUNING)if(!isNum(lv[t.k]))bad(`${t.k} must be a number.`);
   if(isNum(lv.RefillFrontShare)&&(lv.RefillFrontShare<0||lv.RefillFrontShare>1))bad('RefillFrontShare must be between 0 and 1.');
