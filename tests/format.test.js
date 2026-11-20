@@ -9,7 +9,7 @@ describe('level format',()=>{
   it('writes the game file back byte for byte',()=>{
     expect(serialize(JSON.parse(demo))).toBe(demo.trim());
     for(const lv of LEVELS)expect(serialize(JSON.parse(serialize(lv)))).toBe(serialize(lv));
-    expect(LEVELS.map(l=>l.Name)).toEqual(Array.from({length:20},(_,i)=>'L'+(i+1)));
+    expect(LEVELS.map(l=>l.Name)).toEqual(Array.from({length:40},(_,i)=>'L'+(i+1)));
   });
   it('keeps the key order of the game file',()=>{
     expect(Object.keys(JSON.parse(demo))).toEqual(KEYS);
