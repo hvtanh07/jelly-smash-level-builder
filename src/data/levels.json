@@ -976,7 +976,7 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0003",
+    "SlotLocks": "0,0,2,10",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,

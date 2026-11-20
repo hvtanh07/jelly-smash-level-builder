@@ -1,6 +1,6 @@
 import './style.css';
 import ORIGINAL from './data/levels.json';
-import {KEYS,PALETTE,COLOR_KEYS,colorHex,colorName,QUEEN,EMPTY,HOLE,CHOCO,TRAY,isChoco,chocoHp,DIFFICULTY,TUNING,DEFAULTS,
+import {KEYS,PALETTE,COLOR_KEYS,colorHex,colorName,QUEEN,EMPTY,HOLE,CHOCO,TRAY,isChoco,chocoHp,parseLocks,formatLocks,DIFFICULTY,TUNING,DEFAULTS,
   normalize,serialize,serializeAll,parseLevels,blankLevel,findQueens,findTrays,hpAt,tally,check,statusOf,wallSize} from './format.js';
 import {newGame,step,trySwap,canSwap,useBooster,canBooster,botMove,findMove,simulate} from './engine.js';
 import {LW,layoutOf,draw,cellAt,eventPops} from './render.js';
@@ -154,7 +154,7 @@ function applyTool(hit,first){
     }
     syncTrays(lv,before);
   }else if(hit.area==='slot'&&first){
-    const s=String(lv.SlotLocks).padEnd(lv.SlotCount,'0').split('');s[hit.i]=String(((+s[hit.i]||0)+(hit.shift?9:1))%10);lv.SlotLocks=s.join('');
+    const s=parseLocks(lv.SlotLocks,lv.SlotCount);s[hit.i]=Math.max(0,s[hit.i]+(hit.shift?-1:1));lv.SlotLocks=formatLocks(s);
   }
 }
 
@@ -201,8 +201,8 @@ function renderEdit(){
   el('line',{class:'redline',x1:-4,x2:LW+4,y1:E.red,y2:E.red},svg);
   const rl=el('text',{class:'lbl-s red',x:LW+6,y:E.red+4,'text-anchor':'start'},svg);rl.textContent='lose';
   // slots
-  const locks=String(lv.SlotLocks||'');
-  for(let i=0;i<E.n;i++){const x=i*(E.sw+E.sg),lk=+locks[i]||0;
+  const locks=parseLocks(lv.SlotLocks,E.n);
+  for(let i=0;i<E.n;i++){const x=i*(E.sw+E.sg),lk=locks[i]||0;
     el('rect',{class:'slot'+(lk?' locked':''),x,y:E.slotTop,width:E.sw,height:E.slotH,rx:10},svg);
     const t=el('text',{class:'slotn',x:x+E.sw/2,y:E.slotTop+E.slotH/2},svg);t.textContent=lk?'🔒 '+lk:'open';
   }
@@ -288,7 +288,7 @@ function renderPane(){
   $$('#tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===tab)));
   const lv=L(),p=$('#pane');
   if(tab==='level'){
-    const locks=String(lv.SlotLocks||'');
+    const locks=parseLocks(lv.SlotLocks,+lv.SlotCount||0);
     p.innerHTML=`<h2>Level</h2><div class="fields">
       ${fld('Name','Name',`<input type="text" id="fName" value="${esc(lv.Name)}">`,'full')}
       ${fld('Difficulty','Difficulty',`<select id="fDiff">${DIFFICULTY.map(d=>`<option value="${d.v}" ${d.v===lv.Difficulty?'selected':''}>${d.v} · ${d.name}</option>`).join('')}${DIFFICULTY.some(d=>d.v===lv.Difficulty)?'':`<option selected value="${esc(lv.Difficulty)}">${esc(lv.Difficulty)}</option>`}</select>`)}
@@ -302,8 +302,8 @@ function renderPane(){
       <p class="hint">${lv.RefillColors?`New cubes only get <code>${esc(lv.RefillColors)}</code>; the Help rule only plants these colors.`:'None picked: new cubes get any color still on the wall.'}</p>
       <h3>Cannon slots</h3>
       <div class="fields">${fld('Slots','SlotCount',num('fSlots',lv.SlotCount,'min="1" max="9"'))}</div>
-      <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. You can also click a slot in the design view (Shift-click counts down).</p>
-      <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="9" data-lock="${i}" value="${+locks[i]||0}"></label>`).join('')}</div>
+      <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. A lock of 10 or more is saved as numbers split by commas, e.g. <code>0,0,2,10</code>. You can also click a slot in the design view (Shift-click counts down).</p>
+      <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="99" data-lock="${i}" value="${locks[i]||0}"></label>`).join('')}</div>
       <h3>Elements in this level</h3>${elementSummary(lv)}
       <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T K</kbd><span>Board tools: Cell, Chocolate, Tray, Fixed jelly</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
     $('#fName').addEventListener('change',e=>{const v=e.target.value.trim()||lv.Name;lv.Name=v;commit();$('#lvTitle').textContent=v;});
@@ -313,8 +313,8 @@ function renderPane(){
       const nx=cur.includes(k)?cur.replace(k,''):[...lv.Colors].filter(x=>x===k||cur.includes(x)).join('');if(nx)lv.RefillColors=nx;else delete lv.RefillColors;commit();renderAll();});
     $('#fColors').addEventListener('click',e=>{const b=e.target.closest('[data-col]');if(!b)return;const k=b.dataset.col;
       lv.Colors=lv.Colors.includes(k)?lv.Colors.replace(k,''):lv.Colors+k;commit();syncTools();renderAll();});
-    $('#fSlots').addEventListener('change',e=>{const n=Math.max(1,Math.min(9,+e.target.value||1));lv.SlotCount=n;lv.SlotLocks=String(lv.SlotLocks||'').padEnd(n,'0').slice(0,n);commit();renderAll();});
-    $$('[data-lock]').forEach(i=>i.addEventListener('change',e=>{const s=String(lv.SlotLocks).padEnd(lv.SlotCount,'0').split('');s[+e.target.dataset.lock]=String(Math.max(0,Math.min(9,+e.target.value||0)));lv.SlotLocks=s.join('');commit();renderEdit();}));
+    $('#fSlots').addEventListener('change',e=>{const n=Math.max(1,Math.min(9,+e.target.value||1));lv.SlotCount=n;lv.SlotLocks=String(lv.SlotLocks||'')?formatLocks(parseLocks(lv.SlotLocks,n)):'';commit();renderAll();});
+    $$('[data-lock]').forEach(i=>i.addEventListener('change',e=>{const s=parseLocks(lv.SlotLocks,lv.SlotCount);s[+e.target.dataset.lock]=Math.max(0,Math.min(99,+e.target.value||0));lv.SlotLocks=formatLocks(s);commit();renderEdit();}));
   }
   else if(tab==='wall'){
     const t=tally(lv),w=wallSize(lv);

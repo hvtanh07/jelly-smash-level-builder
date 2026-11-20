@@ -1,7 +1,7 @@
 /* Jelly Smash rules for the play test, the bot and the tests. No DOM here.
    Rules follow the GDD (sections 1.1, 1.2, 1.4, 1.5) and the timings in the level file.
    Positions on the ant wall are in cells, measured down from the top of the ant view. */
-import {findQueens,findTrays,hpAt,isChoco,chocoHp,QUEEN,EMPTY,HOLE,TRAY} from './format.js';
+import {findQueens,findTrays,hpAt,isChoco,chocoHp,parseLocks,QUEEN,EMPTY,HOLE,TRAY} from './format.js';
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 export const ammoFor=n=>2*n-3;            // GDD 1.2: ammo = 2n − 3
@@ -26,8 +26,8 @@ export function newGame(lv,opt={}){
     const hp=hpAt(lv,r,c),a={id:G.ants.length,r,c,w:1,h:1,color:k,queen:false,hp,max:hp,pend:0,alive:true};G.ants.push(a);G.cellAnt[r][c]=a.id;}});
   G.totalAnts=G.ants.length;G.totalHp=G.ants.reduce((s,a)=>s+a.hp,0);
   // slots
-  const locks=String(lv.SlotLocks||'');
-  for(let i=0;i<(+lv.SlotCount||0);i++)G.slots.push({lock:parseInt(locks[i]||'0',10)||0,cannon:null});
+  const locks=parseLocks(lv.SlotLocks,+lv.SlotCount||0);
+  for(let i=0;i<(+lv.SlotCount||0);i++)G.slots.push({lock:locks[i],cannon:null});
   // board
   const br=lv.BoardRows||[],be=lv.BoardElements||[];
   const {trays}=findTrays(be);
