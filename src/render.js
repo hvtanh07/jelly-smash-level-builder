@@ -73,7 +73,9 @@ export function draw(g,G,L,ui){
     rr(g,x,y,L.sw,SLOT_H,12);g.fillStyle='rgba(0,0,0,.3)';g.fill();
     if(sl.lock>0){g.fillStyle='rgba(255,255,255,.12)';rr(g,x,y,L.sw,SLOT_H,12);g.fill();
       const cx=x+L.sw/2,cy=y+SLOT_H/2;g.strokeStyle='#C9D2E8';g.lineWidth=3;g.beginPath();g.arc(cx,cy-6,7,Math.PI,0);g.stroke();
-      rr(g,cx-11,cy-6,22,18,4);g.fillStyle='#C9D2E8';g.fill();label(g,String(sl.lock),cx,cy+3,12,'#2a2350');return;}
+      const lc=sl.lockColor?colorHex(sl.lockColor):'#C9D2E8';
+      if(sl.lockColor){g.strokeStyle=lc;g.lineWidth=2.5;rr(g,x+1,y+1,L.sw-2,SLOT_H-2,11);g.stroke();g.strokeStyle='#C9D2E8';g.lineWidth=3;}
+      rr(g,cx-11,cy-6,22,18,4);g.fillStyle=lc;g.fill();label(g,String(sl.lock),cx,cy+3,12,'#2a2350');return;}
     const k=sl.cannon;
     if(!k){g.setLineDash([4,4]);g.strokeStyle='rgba(255,255,255,.3)';g.lineWidth=1.5;rr(g,x+1,y+1,L.sw-2,SLOT_H-2,11);g.stroke();g.setLineDash([]);return;}
     const hex=colorHex(k.color),cx=x+L.sw/2,cy=y+SLOT_H/2,sc=1+0.2*Math.sin((k.pop||0)*Math.PI);

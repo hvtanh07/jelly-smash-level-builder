@@ -976,14 +976,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0,0,2,10",
+    "SlotLocks": "0023",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.4
+    "RefillFrontShare": 0.4,
+    "SlotLockColors": "..BR"
   },
   {
     "Name": "L13",
@@ -1059,14 +1060,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0005",
+    "SlotLocks": "0006",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...G"
   },
   {
     "Name": "L14",
@@ -1146,14 +1148,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0036",
+    "SlotLocks": "0012",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "..OG"
   },
   {
     "Name": "L15",
@@ -1237,14 +1240,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0008",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "...Y"
   },
   {
     "Name": "L16",
@@ -1494,14 +1498,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0004",
+    "SlotLocks": "0002",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...Y"
   },
   {
     "Name": "L19",
@@ -1680,14 +1685,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0006",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "...Y"
   },
   {
     "Name": "L21",
@@ -2027,14 +2033,15 @@
       "RBGO"
     ],
     "QueenHp": 18,
-    "SlotLocks": "0004",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...G"
   },
   {
     "Name": "L25",
@@ -2114,14 +2121,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0006",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "...B"
   },
   {
     "Name": "L26",
@@ -2464,14 +2472,15 @@
       "RGYO"
     ],
     "QueenHp": 16,
-    "SlotLocks": "0004",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...R"
   },
   {
     "Name": "L30",
@@ -2555,14 +2564,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0,0,0,16",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "...Y"
   },
   {
     "Name": "L31",
@@ -2732,14 +2742,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0,0,4,12",
+    "SlotLocks": "0013",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "..GO"
   },
   {
     "Name": "L33",
@@ -2913,14 +2924,15 @@
       "RGYO"
     ],
     "QueenHp": 18,
-    "SlotLocks": "0005",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...B"
   },
   {
     "Name": "L35",
@@ -3007,14 +3019,15 @@
       "BGYO"
     ],
     "QueenHp": 20,
-    "SlotLocks": "0,0,0,16",
+    "SlotLocks": "0002",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "...O"
   },
   {
     "Name": "L36",
@@ -3180,14 +3193,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0006",
+    "SlotLocks": "0001",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.35
+    "RefillFrontShare": 0.35,
+    "SlotLockColors": "...O"
   },
   {
     "Name": "L38",
@@ -3267,14 +3281,15 @@
     ],
     "TrayBottles": [],
     "QueenHp": 18,
-    "SlotLocks": "0,0,5,14",
+    "SlotLocks": "0002",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.33
+    "RefillFrontShare": 0.33,
+    "SlotLockColors": "...Y"
   },
   {
     "Name": "L39",
@@ -3361,14 +3376,15 @@
       "RGYO"
     ],
     "QueenHp": 16,
-    "SlotLocks": "0005",
+    "SlotLocks": "0002",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.33
+    "RefillFrontShare": 0.33,
+    "SlotLockColors": "...O"
   },
   {
     "Name": "L40",
@@ -3455,13 +3471,14 @@
       "RGYO"
     ],
     "QueenHp": 22,
-    "SlotLocks": "0,0,8,18",
+    "SlotLocks": "0013",
     "FireInterval": 0.15,
     "ShotFlight": 0.3,
     "SwapSeconds": 0.16,
     "MatchHold": 0.3,
     "MatchFlight": 0.45,
     "FallSeconds": 0.28,
-    "RefillFrontShare": 0.3
+    "RefillFrontShare": 0.3,
+    "SlotLockColors": "..OY"
   }
 ]

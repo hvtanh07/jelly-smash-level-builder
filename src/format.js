@@ -6,7 +6,7 @@ export const KEYS=['Name','Difficulty','Colors','SlotCount','WallRows','WallHp',
   'BoardRows','BoardElements','TrayBottles','QueenHp','SlotLocks','FireInterval','ShotFlight','SwapSeconds','MatchHold',
   'MatchFlight','FallSeconds','RefillFrontShare'];
 // tool keys the game file does not have yet; written only when set
-export const OPTIONAL_KEYS=['RefillColors'];
+export const OPTIONAL_KEYS=['RefillColors','SlotLockColors'];
 
 /* Cell letters.
    WallRows: a color letter is an ant of that color, Q is a Queen Ant cell (2×2), "." is an empty cell.
@@ -15,7 +15,9 @@ export const OPTIONAL_KEYS=['RefillColors'];
      (under a chocolate: the cube it shows when it breaks).
    BoardElements: "." nothing, a digit 1–9 is a Chocolate Layer with that HP, "X" a Chocolate Layer with the default HP,
      "T" Jelly Bottle tray (2×2).
-   Optional key RefillColors (tool field, written only when set, after the game keys): the only colors new cubes can have. */
+   Optional key RefillColors (tool field, written only when set, after the game keys): the only colors new cubes can have.
+   Optional key SlotLockColors (written only when set): one character per slot, a color letter = that locked slot only
+     counts down for matches of this color (GDD 1.4, color lock); "." = any cannon counts (old rule). */
 export const PALETTE=[
   {k:'R',name:'Red',hex:'#E5484D'},
   {k:'B',name:'Blue',hex:'#2F6FEB'},
@@ -218,6 +220,10 @@ export function check(lv){
   // tuning
   for(const t of TUNING)if(!isNum(lv[t.k]))bad(`${t.k} must be a number.`);
   if(isNum(lv.RefillFrontShare)&&(lv.RefillFrontShare<0||lv.RefillFrontShare>1))bad('RefillFrontShare must be between 0 and 1.');
+  {const lc=String(lv.SlotLockColors||''),ls=parseLocks(lv.SlotLocks,n);
+   if(lc){if(lc.length!==n)bad(`SlotLockColors has ${lc.length} characters, SlotCount is ${n}.`);
+     [...lc].forEach((k,i)=>{if(k!=='.'&&!colors.includes(k))bad(`SlotLockColors slot ${i+1}: "${k}" is not in Colors.`);
+       if(k!=='.'&&!(ls[i]>0))warn(`SlotLockColors slot ${i+1}: a color on an open slot does nothing.`);});}}
   {const rc=String(lv.RefillColors||'');[...rc].forEach(k=>{if(!colors.includes(k))bad(`RefillColors: "${k}" is not in Colors.`);});
    if(rc&&rc.length<2)warn('RefillColors has fewer than 2 colors: new cubes cannot make lines of 3 without a ready match.');}
   if(isNum(lv.WallStartVisibleRows)&&isNum(lv.LoseDepthCells)&&lv.WallStartVisibleRows>=lv.LoseDepthCells)bad('The wall starts at or past the red line.');

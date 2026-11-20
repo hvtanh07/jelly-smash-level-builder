@@ -27,7 +27,8 @@ export function newGame(lv,opt={}){
   G.totalAnts=G.ants.length;G.totalHp=G.ants.reduce((s,a)=>s+a.hp,0);
   // slots
   const locks=parseLocks(lv.SlotLocks,+lv.SlotCount||0);
-  for(let i=0;i<(+lv.SlotCount||0);i++)G.slots.push({lock:locks[i],cannon:null});
+  const lockCols=String(lv.SlotLockColors||'');
+  for(let i=0;i<(+lv.SlotCount||0);i++){const k=lockCols[i];G.slots.push({lock:locks[i],lockColor:k&&k!=='.'?k:null,cannon:null});}
   // board
   const br=lv.BoardRows||[],be=lv.BoardElements||[];
   const {trays}=findTrays(be);
@@ -314,20 +315,24 @@ function gravity(G){
 }
 
 /* ---------- cannons ---------- */
-function countLocks(G){
-  // GDD 1.4 Locked Slot: each cannon that reaches the slots counts every locked slot down by 1
-  G.slots.forEach((s,j)=>{if(s.lock>0){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
+/* GDD 1.4 Locked Slot.
+   Color lock (lockColor set): each match of that color counts it down by 1, even when its cannon is lost or has no target.
+   Plain lock (no color, old rule): each cannon that reaches the slots counts it down by 1. */
+function countLocks(G,color,kind){
+  G.slots.forEach((s,j)=>{if(!(s.lock>0))return;
+    if(s.lockColor?(kind==='match'&&s.lockColor===color):kind==='enter'){s.lock--;if(s.lock===0)G.events.push({type:'unlock',slot:j});}});
 }
 /* A cannon of a color already in the slots merges into that cannon at once (ammo added), even when the slots are full.
    Otherwise it takes the leftmost free slot; slots full: it is lost. */
 function placeCannon(G,f){
+  countLocks(G,f.color,'match');
   if(available(G,f.color)<=0){G.events.push({type:'notarget',color:f.color,at:f.at});return;}
   const m=G.slots.findIndex(s=>s.cannon&&s.cannon.color===f.color&&s.cannon.ammo>0);
-  if(m>=0){const k=G.slots[m].cannon;k.ammo+=f.ammo;k.pop=1;G.stats.merges++;G.events.push({type:'merge',slot:m,color:f.color});countLocks(G);return;}
+  if(m>=0){const k=G.slots[m].cannon;k.ammo+=f.ammo;k.pop=1;G.stats.merges++;G.events.push({type:'merge',slot:m,color:f.color});countLocks(G,f.color,'enter');return;}
   const i=G.slots.findIndex(s=>s.lock===0&&!s.cannon);
   if(i<0){G.stats.lost++;G.stats.lostAmmo+=f.ammo;G.events.push({type:'lost',color:f.color,ammo:f.ammo});return;}
   G.slots[i].cannon={color:f.color,ammo:f.ammo,cd:0,id:++G.stats.cannons,pop:1};
-  countLocks(G);
+  countLocks(G,f.color,'enter');
 }
 // safety net: two cannons of one color in the slots merge into the leftmost
 function mergeSame(G){
@@ -468,7 +473,8 @@ export function botMove(G){
         if(x.kind==='tray'){const t=G.trays[x.tray];if(t.bottles.some(q=>!q.broken&&q.color===g.color))bonus+=4;}}
       const room=free>0||sameIn(g.color)>=1;
       const front=pickTarget(G,g.color)?3:0;
-      s+=(room&&need>0?Math.min(ammo+bonus,need)+front:-2)+bonus*0.5;
+      const unlock=G.slots.some(q=>q.lock>0&&q.lockColor===g.color)?4:0;   // a match of a color lock's color counts it down
+      s+=(room&&need>0?Math.min(ammo+bonus,need)+front:-2)+bonus*0.5+unlock;
     }
     // lower matches shake more cubes loose
     s+=Math.max(a[0],b[0])*0.05+G.rng()*0.3;

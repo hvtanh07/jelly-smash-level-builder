@@ -204,7 +204,8 @@ function renderEdit(){
   const locks=parseLocks(lv.SlotLocks,E.n);
   for(let i=0;i<E.n;i++){const x=i*(E.sw+E.sg),lk=locks[i]||0;
     el('rect',{class:'slot'+(lk?' locked':''),x,y:E.slotTop,width:E.sw,height:E.slotH,rx:10},svg);
-    const t=el('text',{class:'slotn',x:x+E.sw/2,y:E.slotTop+E.slotH/2},svg);t.textContent=lk?'🔒 '+lk:'open';
+    const lcol=String(lv.SlotLockColors||'')[i];const t=el('text',{class:'slotn',x:x+E.sw/2,y:E.slotTop+E.slotH/2},svg);t.textContent=lk?'🔒 '+lk+(lcol&&lcol!=='.'?' '+lcol:''):'open';
+    if(lk&&lcol&&lcol!=='.')t.setAttribute('fill',colorHex(lcol));
   }
   // board
   const bs=E.bc*0.9,bo=(E.bc-bs)/2;
@@ -302,8 +303,8 @@ function renderPane(){
       <p class="hint">${lv.RefillColors?`New cubes only get <code>${esc(lv.RefillColors)}</code>; the Help rule only plants these colors.`:'None picked: new cubes get any color still on the wall.'}</p>
       <h3>Cannon slots</h3>
       <div class="fields">${fld('Slots','SlotCount',num('fSlots',lv.SlotCount,'min="1" max="9"'))}</div>
-      <p class="hint">Locked Slot <code>SlotLocks</code>: cannons that must enter slots before it opens. 0 = open. A lock of 10 or more is saved as numbers split by commas, e.g. <code>0,0,2,10</code>. You can also click a slot in the design view (Shift-click counts down).</p>
-      <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="99" data-lock="${i}" value="${locks[i]||0}"></label>`).join('')}</div>
+      <p class="hint">Locked Slot <code>SlotLocks</code>: the count before it opens. 0 = open. Pick a color to make it a color lock (<code>SlotLockColors</code>): only matches of that color count it down. No color: every cannon that enters a slot counts (old rule). A lock of 10 or more is saved as numbers split by commas, e.g. <code>0,0,2,10</code>. You can also click a slot in the design view (Shift-click counts down).</p>
+      <div class="locks">${Array.from({length:+lv.SlotCount||0},(_,i)=>`<label class="fld"><span>Slot ${i+1}</span><input type="number" min="0" max="99" data-lock="${i}" value="${locks[i]||0}"><select data-lockc="${i}"><option value=".">any color</option>${[...String(lv.Colors)].map(k=>`<option value="${k}" ${String(lv.SlotLockColors||'')[i]===k?'selected':''}>${esc(colorName(k))}</option>`).join('')}</select></label>`).join('')}</div>
       <h3>Elements in this level</h3>${elementSummary(lv)}
       <h3>Keys</h3><div class="keys"><kbd>P</kbd><span>Design / Play test</span><kbd>Ctrl Z</kbd><span>Undo</span><kbd>C H Q E</kbd><span>Wall tools: Color, HP, Queen, Erase</span><kbd>B X T K</kbd><span>Board tools: Cell, Chocolate, Tray, Fixed jelly</span><kbd>1–8</kbd><span>Pick color or HP</span></div>`;
     $('#fName').addEventListener('change',e=>{const v=e.target.value.trim()||lv.Name;lv.Name=v;commit();$('#lvTitle').textContent=v;});
@@ -313,7 +314,8 @@ function renderPane(){
       const nx=cur.includes(k)?cur.replace(k,''):[...lv.Colors].filter(x=>x===k||cur.includes(x)).join('');if(nx)lv.RefillColors=nx;else delete lv.RefillColors;commit();renderAll();});
     $('#fColors').addEventListener('click',e=>{const b=e.target.closest('[data-col]');if(!b)return;const k=b.dataset.col;
       lv.Colors=lv.Colors.includes(k)?lv.Colors.replace(k,''):lv.Colors+k;commit();syncTools();renderAll();});
-    $('#fSlots').addEventListener('change',e=>{const n=Math.max(1,Math.min(9,+e.target.value||1));lv.SlotCount=n;lv.SlotLocks=String(lv.SlotLocks||'')?formatLocks(parseLocks(lv.SlotLocks,n)):'';commit();renderAll();});
+    $('#fSlots').addEventListener('change',e=>{const n=Math.max(1,Math.min(9,+e.target.value||1));lv.SlotCount=n;lv.SlotLocks=String(lv.SlotLocks||'')?formatLocks(parseLocks(lv.SlotLocks,n)):'';if(lv.SlotLockColors)lv.SlotLockColors=String(lv.SlotLockColors).padEnd(n,'.').slice(0,n);commit();renderAll();});
+    $$('[data-lockc]').forEach(i=>i.addEventListener('change',e=>{const n=+lv.SlotCount||0;const s=String(lv.SlotLockColors||'').padEnd(n,'.').slice(0,n).split('');s[+e.target.dataset.lockc]=e.target.value;const v=s.join('');if(/[^.]/.test(v))lv.SlotLockColors=v;else delete lv.SlotLockColors;commit();renderEdit();}));
     $$('[data-lock]').forEach(i=>i.addEventListener('change',e=>{const s=parseLocks(lv.SlotLocks,lv.SlotCount);s[+e.target.dataset.lock]=Math.max(0,Math.min(99,+e.target.value||0));lv.SlotLocks=formatLocks(s);commit();renderEdit();}));
   }
   else if(tab==='wall'){
@@ -406,7 +408,7 @@ function renderPane(){
 }
 function elementSummary(lv){
   const t=tally(lv),rows=[
-    ['Chocolate Layer',t.choco?`${t.choco} cells`:'–'],['Locked Slot',t.locks?`${t.locks} slot${t.locks>1?'s':''} (${lv.SlotLocks})`:'–'],
+    ['Chocolate Layer',t.choco?`${t.choco} cells`:'–'],['Locked Slot',t.locks?`${t.locks} slot${t.locks>1?'s':''} (${lv.SlotLocks}${lv.SlotLockColors?' · colors '+lv.SlotLockColors:''})`:'–'],
     ['Armored Ant',t.armored?`${t.armored} ants`:'–'],['Jelly Bottle',t.trays?`${t.trays} tray${t.trays>1?'s':''}`:'–'],['Queen Ant',t.queens?`${t.queens} × ${lv.QueenHp} HP`:'–']];
   return `<table class="tally"><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table>`;
 }
