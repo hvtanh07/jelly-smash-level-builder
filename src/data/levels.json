@@ -957,13 +957,13 @@
     "BoardWidth": 7,
     "BoardHeight": 7,
     "BoardRows": [
-      "GYRORYG",
-      "ROBGBOR",
-      "YGRGRGY",
+      "##RGR##",
+      "#GOGOG#",
+      "YORYROY",
       "RRBYBRR",
       "ROOROOR",
-      "YYOBOYY",
-      "YRBGBRY"
+      "#YOYOY#",
+      "##BGB##"
     ],
     "BoardElements": [
       ".......",
@@ -1038,19 +1038,17 @@
     "WallBoostStopRows": 2,
     "LoseDepthCells": 8.3,
     "BoardWidth": 8,
-    "BoardHeight": 8,
+    "BoardHeight": 7,
     "BoardRows": [
-      "#YRYYRY#",
-      "RGOYYOGR",
-      "YGRGGRGY",
-      "##YBBY##",
-      "##OBBO##",
-      "RGYOOYGR",
-      "GYRGGRYG",
-      "#ROYYOR#"
+      "#GGYYGG#",
+      "#RGBBGR#",
+      "BRYRRYRB",
+      "#GBYYBG#",
+      "RGGYYGGR",
+      "#YORROY#",
+      "#BYRRYB#"
     ],
     "BoardElements": [
-      "........",
       "........",
       "........",
       "........",
