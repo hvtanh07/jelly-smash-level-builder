@@ -36,6 +36,21 @@ describe('rules',()=>{
     land(G,'B',3);step(G,1/60);
     expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,0,0]);
   });
+  it('a color lock counts down only for matches of its color',()=>{
+    const G=newGame(mini({SlotLocks:'00012',SlotLockColors:'...BR'}),{seed:1});settle(G);G.wy=-5;
+    land(G,'G',3);step(G,1/60);
+    expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,1,2]);
+    land(G,'R',3);step(G,1/60);
+    expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,1,1]);
+    land(G,'B',3);step(G,1/60);land(G,'R',3);step(G,1/60);
+    expect(G.slots.map(s=>s.lock)).toEqual([0,0,0,0,0]);
+  });
+  it('a color lock still counts a match whose cannon is lost',()=>{
+    const G=newGame(mini({SlotCount:2,SlotLocks:'02',SlotLockColors:'.B'}),{seed:1});settle(G);G.wy=-5;
+    land(G,'R',3);step(G,1/60);land(G,'B',3);step(G,1/60);   // slot 1 holds red, so the blue cannon is lost
+    expect(G.stats.lost).toBe(1);
+    expect(G.slots[1].lock).toBe(1);
+  });
   it('a cannon of a color already in the slots merges into it at once',()=>{
     const G=newGame(mini({WallRows:['RRRR','RRRR','RRRR']}),{seed:1});settle(G);G.wy=-5;   // wall out of view: cannons wait
     land(G,'R',3);step(G,1/60);land(G,'R',4);step(G,1/60);
